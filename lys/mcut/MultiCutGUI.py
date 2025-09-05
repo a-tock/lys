@@ -1,5 +1,5 @@
 
-from lys import lysPath
+from lys import resources
 from lys.Qt import QtWidgets, QtCore, QtGui
 from lys.widgets import LysSubWindow, CanvasBase, canvas
 
@@ -13,6 +13,7 @@ class _MultiCutWindow(LysSubWindow):
 
     It contains a grid for displaying canvases and a side bar for managing filters, axes ranges, free lines, and child waves.
     """
+
     def __init__(self, grid):
         super().__init__()
         self.resized.connect(lambda: grid._overlay.resize(self.size()))
@@ -306,12 +307,8 @@ class MultiCut(QtCore.QObject):
         self.__loadCanvas(d.get("gui", {}), **kwargs)
 
     def loadDefaultTemplate(self):
-        path = lysPath(".lys/templates/" + str(len(self._cui.getFilteredWave().shape)) + "D/" + "Default")
-        with open(path, "r") as f:
-            d = eval(f.read())
-        if d is not None:
-            self.loadFromDictionary(d, useGrid=True, useAnnot=True)
-
+        d = resources.loadDefaultTemplate(len(self._cui.getFilteredWave().shape))
+        self.loadFromDictionary(d, useGrid=True, useAnnot=True)
 
     @property
     def cui(self):
