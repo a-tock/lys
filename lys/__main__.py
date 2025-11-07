@@ -49,6 +49,8 @@ parser.add_argument("-np", "--noplugin", help="Do not import local plugins", act
 parser.add_argument("--clean", help="Delete all settings. Try it when lys is broken", action="store_true")
 # Self-closing
 parser.add_argument("-sc", help="lys is self-closing (without asking when closing). ", action="store_true")
+# jupyter
+parser.add_argument("-j", "--jupyter", help="Launch Jupyter Lab along with lys", action="store_true")
 
 # parse args
 args = parser.parse_args()
@@ -77,6 +79,13 @@ if not args.noplugin:
             import_module(plugin)
 else:
     print("lys is launched wih -np option. No plugin is loaded.")
+
+# Launch Jupyter Lab
+if args.jupyter:
+    #    loadWindow.setPixmap(splash["jupyter"])
+    from .localPlugins import jupyter
+    jupyter.start_jupyter()
+
 
 loadWindow.setPixmap(splash["workspace"])
 lys.glb.restoreWorkspaces()

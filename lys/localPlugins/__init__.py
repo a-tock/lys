@@ -1,3 +1,4 @@
+from . import jupyter
 
 from lys import glb
 if glb.mainWindow() is not None:  # This is required to avoid local plugins imported by unittest
