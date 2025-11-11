@@ -83,7 +83,7 @@ else:
 # Launch Jupyter Lab
 if args.jupyter:
     #    loadWindow.setPixmap(splash["jupyter"])
-    from .localPlugins import jupyter
+    from . import jupyter
     jupyter.start_jupyter()
 
 
