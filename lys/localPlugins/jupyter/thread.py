@@ -22,11 +22,19 @@ def start_kernel():
     ]
     app.initialize(argv)
 
-    sys.stdout = Tee(sys.stdout, out_orig)
-    sys.stderr = Tee(sys.stderr, err_orig)
+    tee_out = Tee(sys.stdout, out_orig)
+    tee_err = Tee(sys.stderr, err_orig)
+    sys.stdout = tee_out
+    sys.stderr = tee_err
 
-    while True:
+    try:
         app.start()
+    finally:
+        # --- kernel shutdown: prevent "event loop is closed" ---
+        tee_out.close()
+        tee_err.close()
+        sys.stdout = out_orig
+        sys.stderr = err_orig
 
 
 def start_thread():
@@ -39,13 +47,25 @@ class Tee:
         self.primary = primary
         self.secondary = secondary
         self._lock = threading.RLock()
+        self.closed = False
 
     def write(self, data):
+        if self.closed:
+            return 0
         with self._lock:
-            self.primary.write(data)
-            self.secondary.write(data)
+            try:
+                self.primary.write(data)
+            except Exception:
+                pass
+            try:
+                self.secondary.write(data)
+            except Exception:
+                pass
+        return len(data)
 
     def flush(self):
+        if self.closed:
+            return
         with self._lock:
             try:
                 self.primary.flush()
@@ -55,6 +75,10 @@ class Tee:
                 self.secondary.flush()
             except Exception:
                 pass
+
+    def close(self):
+        """Mark Tee as closed so shutdown writes are ignored."""
+        self.closed = True
 
     # 一部のコードが fileno/encoding を参照する場合があるので委譲しておく
     @property
