@@ -1,6 +1,7 @@
 import logging
 import warnings
 import weakref
+import numpy as np
 
 from lys import DaskWave, Wave, filters
 from lys.Qt import QtCore
@@ -101,9 +102,16 @@ class MultiCutWave(QtCore.QObject):
 
     def _load(self, data):
         if isinstance(data, Wave) or isinstance(data, DaskWave):
-            return DaskWave(data)
+            wave = data
+            # return DaskWave(data)
         else:
-            return DaskWave(Wave(data))
+            wave = Wave(data)
+        if "complex" in str(wave.data.dtype):
+            if isinstance(wave, Wave):
+                wave = Wave(np.moveaxis(np.array([wave.data.real, wave.data.imag]),0, -1), *wave.axes, **wave.note)
+            else:
+                wave = DaskWave(np.moveaxis(np.array([wave.data.real, wave.data.imag]),0, -1), *wave.axes, **wave.note)
+        return DaskWave(wave)
 
     def applyFilter(self, filt):
         """

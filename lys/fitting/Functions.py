@@ -169,6 +169,18 @@ def relaxOsci(x, position, height, frequency, phase, offset, tau):
     """
     return height * np.heaviside(x - position, 0.5) * np.exp(-(x - position) / tau) * (offset + np.cos(frequency * (x - position) + phase * np.pi / 180))
 
+def power(x, position, coef, exponent):
+    """
+    Power function.
+
+    :math:`y = a(x-x_0)^b`
+
+    Args:
+        position: :math:`x_0`.
+        coef: :math:`a`.
+        exponent: :math:`b`.
+    """
+    return coef * (x - position)**exponent
 
 functions = OrderedDict()
 functions["Const"] = const
@@ -183,6 +195,8 @@ functions["StepExponential"] = stepExp
 functions["DoubleExp"] = doubleExp
 functions["relaxOsci"] = relaxOsci
 functions["Error"] = error
+functions["Power"] = power
+
 
 
 def _addFittingFunction(func, name):

@@ -4,7 +4,7 @@ import numpy as np
 from scipy import optimize
 
 
-def fit(f, xdata, ydata, guess=None, bounds=None):
+def fit(f, xdata, ydata, guess=None, bounds=None, log=False):
     """
     Wrapper of scipy.curve_fit that implements several useful functionarities.
 
@@ -23,6 +23,12 @@ def fit(f, xdata, ydata, guess=None, bounds=None):
     """
     if guess is None:
         guess = [1 for _ in range(_nparam(f))]
+    print("log:", log)
+    if log:
+        print("use log func")
+        f_ori = f
+        f = lambda *args, **kwargs: np.log(f_ori(*args, **kwargs))
+        ydata = np.log(ydata)
     if bounds is None:
         res, sig = optimize.curve_fit(f, xdata, ydata, guess)
     else:

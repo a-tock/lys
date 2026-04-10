@@ -175,16 +175,16 @@ def _calcExtent2D(wav):
     ystart = wav.y[0]
     yend = wav.y[len(wav.y) - 1]
 
-    dx = (xend - xstart) / (len(wav.x) - 1)
-    dy = (yend - ystart) / (len(wav.y) - 1)
+    dx = (xend - xstart) / max(len(wav.x) - 1, 1)
+    dy = (yend - ystart) / max(len(wav.y) - 1, 1)
 
     xstart = xstart - dx / 2
     xend = xend + dx / 2
     ystart = ystart - dy / 2
     yend = yend + dy / 2
 
-    xmag = (xend - xstart) / len(wav.x)
-    ymag = (yend - ystart) / len(wav.y)
+    xmag = (xend - xstart) / len(wav.x) if xend - xstart != 0 else 1
+    ymag = (yend - ystart) / len(wav.y) if yend - ystart != 0 else 1
     xshift = xstart
     yshift = ystart
     tr = QtGui.QTransform()

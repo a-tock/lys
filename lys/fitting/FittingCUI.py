@@ -21,6 +21,7 @@ class FittingCUI(QtCore.QObject):
             self._range = [None, None]
             self._xdata = None
             self._id = uuid.uuid1()
+            self._log = False
         self._funcs.updated.connect(self.__update)
 
     def __getattr__(self, key):
@@ -54,7 +55,7 @@ class FittingCUI(QtCore.QObject):
             if g < b[0] or g > b[1] or b[0] > b[1]:
                 return False, "Fit error: all fitting parameters should between minimum and maximum."
         data, x, _ = self.__getDataForFit()
-        res, sig = fit(self.fitFunction, x, data, guess=guess, bounds=bounds.T)
+        res, sig = fit(self.fitFunction, x, data, guess=guess, bounds=bounds.T, log=self.logFit)
         n = 0
         for fi in self.functions:
             m = len(fi.parameters)
@@ -87,6 +88,7 @@ class FittingCUI(QtCore.QObject):
         d["fitted"] = True
         d["range"] = self._range
         d["xdata"] = self._xdata
+        d["log"] = self._log
         if useId:
             d["id"] = self._id
         return d
@@ -95,6 +97,7 @@ class FittingCUI(QtCore.QObject):
         self._funcs.loadFromDictionary(dic)
         self._range = dic.get("range", [None, None])
         self._xdata = dic.get("xdata", None)
+        self._log = dic.get("log", False)
         if "id" in dic:
             self._id = dic["id"]
 
@@ -105,6 +108,14 @@ class FittingCUI(QtCore.QObject):
     @property
     def id(self):
         return self._id
+    
+    @property
+    def logFit(self):
+        return self._log
+    
+    @logFit.setter
+    def logFit(self, log):
+        self._log = log
 
 
 class _FittingFunctions(QtCore.QObject):

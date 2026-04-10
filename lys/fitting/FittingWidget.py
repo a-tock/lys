@@ -84,10 +84,12 @@ class FittingWidget(QtWidgets.QWidget):
         self._target = QtWidgets.QComboBox()
         self._target.addItems([item.name for item in self._items])
         self._target.currentIndexChanged.connect(self.__targetChanged)
+        self._log = QtWidgets.QCheckBox("Log fit", stateChanged=self.__logChanged)
 
         hbox2 = QtWidgets.QHBoxLayout()
         hbox2.addWidget(QtWidgets.QLabel("Target"))
         hbox2.addWidget(self._target)
+        hbox2.addWidget(self._log)
 
         self._dm = _DataAxisWidget(self.canvas)
         self._dm.axisChanged.connect(self.__axisChanged)
@@ -122,6 +124,10 @@ class FittingWidget(QtWidgets.QWidget):
             self._tree.set(self._items[i])
             self._append.setChecked(self._currentResult.state)
             self._dm.setRange(*self._currentItem.getFittingRange())
+
+    def __logChanged(self, state):
+        self._currentItem.logFit = state
+        print(state)
 
     def __resi(self):
         if self._all.isChecked():
