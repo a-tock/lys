@@ -47,8 +47,11 @@ class DriftCorrection(FilterInterface):
     def _calcShift1(self, wave):
         region = [wave.posToPoint(r, ax) for ax, r in zip(self._axes, self._region)]
         ref, data = self._makeReferenceData1(wave.data, region, self._axes)
+        print(np.array(ref).shape, np.array(data).shape)
+        window = cv2.createHanningWindow(ref.shape, cv2.CV_32F).astype(np.float32).T
+        
         def f(d):
-            return np.array(cv2.phaseCorrelate(d.astype(np.float32), ref.astype(np.float32))[0])[::-1]
+            return np.array(cv2.phaseCorrelate(d.astype(np.float32), ref.astype(np.float32), window)[0])[::-1]
         sign = "(" + ",".join("abcdefghijklmn"[0:len(self._axes)]) + ")->(z)"
         uf = self._generalizedFunction(None, f, signature=sign, axes=[self._axes, [0]], output_dtypes=float, output_sizes={"z": 2})
         return uf(data)
