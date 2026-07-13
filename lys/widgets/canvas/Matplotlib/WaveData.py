@@ -201,7 +201,8 @@ class _MatplotlibImage(ImageData):
                 self._colorbar = None
             if self._colorbar is None:
                 self._colorbar = fig.colorbar(self._obj, ax=self.canvas().getAxes(self._axis), orientation=direction)
-                self._colorbar.ax.set_aspect("auto")
+                self._colorbar.ax.set_in_layout(False)
+                self._colorbar.ax.set_box_aspect(None)
         else:
             if self._colorbar is not None:
                 self._colorbar.remove()
@@ -223,11 +224,13 @@ class _MatplotlibImage(ImageData):
 
     def __resized(self):
         if self._colorbar is not None:
+            self._colorbar.ax.set_in_layout(False)
             m = self.canvas().getMargin()
             if self.getColorbarDirection() == "vertical":
                 self._colorbar.ax.set_position([m[1] + self._cpos[0], m[2] + self._cpos[1], self._csize[0], (m[3] - m[2]) * self._csize[1]])
             else:
-                self._colorbar.ax.set_position([m[0] + self._cpos[1], m[3] + self._cpos[0], (m[1] - m[0]) * self._csize[1], self._csize[0]])
+                self._colorbar.ax.set_position([m[0] + self._cpos[1], m[2] - self._cpos[0] - self._csize[0], (m[1] - m[0]) * self._csize[1], self._csize[0]])
+            self._colorbar.ax.set_box_aspect(None)
 
     def colorbar(self):
         return self._colorbar

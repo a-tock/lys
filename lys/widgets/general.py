@@ -260,9 +260,7 @@ class ColormapSelection(QtWidgets.QWidget):
         Args:
             cmap(str): The name of matplotlib colormaps. Use matplotlib.pyplot.colormaps to view all colormap names.
         """
-        tmp = cmap.split('_')
-        self.__combo.setColormap(tmp[0])
-        self.__check.setChecked(not len(tmp) == 1)
+        self.__combo.setColormap(cmap)
 
     def currentColor(self):
         """
