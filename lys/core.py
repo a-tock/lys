@@ -900,6 +900,12 @@ class DaskWave(QtCore.QObject):
 
 class Version:
     def __init__(self, version):
+        warnings.warn(
+            "The 'Version' class is deprecated and will be removed in a future version. "
+            "Please use packaging.version instead.",
+            category=DeprecationWarning,
+            stacklevel=2
+        )
         self._version = str(version)
         self._verNum = tuple(int(i) for i in self._version.split(".") if i.isdigit())
 
