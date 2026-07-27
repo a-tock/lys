@@ -231,7 +231,8 @@ class Graph_test(unittest.TestCase):
             self.assertEqual(c.getAxisLabelCoords("Bottom"), -0.14)
 
             # set/get axis label font
-            family = fm.FontProperties(family=mpl.rcParams['font.family']).get_name()
+#            family = fm.FontProperties(family=mpl.rcParams['font.family']).get_name()
+            family = fm.fontManager.ttflist[0].name
             c.setAxisLabelFont("Left", family, 12, "#000000")
             c.setAxisLabelFont("Bottom", family, 14, "#ffffff")
             self.assertEqual(c.getAxisLabelFont("Left"), {"fname": family, "size": 12, "color": "#000000"})
@@ -262,7 +263,8 @@ class Graph_test(unittest.TestCase):
             self.assertTrue(c.getTickLabelVisible("Left", mirror=True))
 
             # set/get tick label font
-            family = fm.FontProperties(family=mpl.rcParams['font.family']).get_name()
+            # family = fm.FontProperties(family=mpl.rcParams['font.family']).get_name()
+            family = fm.fontManager.ttflist[0].name
             c.setTickLabelFont("Left", family, 12, "#000000")
             c.setTickLabelFont("Bottom", family, 14, "#ffffff")
             self.assertEqual(c.getTickLabelFont("Left"), {"fname": family, "size": 12, "color": "#000000"})
@@ -288,7 +290,8 @@ class Graph_test(unittest.TestCase):
             c.setLegendPosition((0.4, 0.3))
             self.assertEqual(c.getLegendPosition(), (0.4, 0.3))
 
-            family = fm.FontProperties(family=mpl.rcParams['font.family']).get_name()
+            # family = fm.FontProperties(family=mpl.rcParams['font.family']).get_name()
+            family = fm.fontManager.ttflist[0].name
             c.setLegendFont(family, 12, "#ffffff")
             self.assertEqual(c.getLegendFont(), {"fname": family, "size": 12, "color": "#ffffff"})
 
