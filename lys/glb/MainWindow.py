@@ -88,7 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in (0, 1):
             button = self._mainTab.tabBar().tabButton(i, QtWidgets.QTabBar.RightSide)
             if button :
-                button.hide()
+                button.resize(0, 0)
         self.__loadWorkspace()
         self._mainTab.setCurrentIndex(0)
         self._mainTab.currentChanged.connect(self._changeTab)
