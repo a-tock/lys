@@ -6,6 +6,29 @@ from lys.Qt import QtWidgets, QtGui
 _fontPath = ".lys/settings/font.npy"
 
 
+def _applyFontCss(font: QtGui.QFont):
+    styles = [
+        f'font-family: "{font.family()}";',
+        f'font-size: {font.pointSize()}pt;',
+    ]
+    if font.bold():
+        styles.append("font-weight: bold;")
+    if font.italic():
+        styles.append("font-style: italic;")
+
+    font_css = f"QWidget {{ {' '.join(styles)} }}"
+
+    app = QtWidgets.QApplication.instance()
+    if app:
+        app.setStyleSheet(font_css)
+
+    glb.mainWindow()._current_font = font
+
+
+def _getCurrentFont() -> QtGui.QFont:
+    return getattr(glb.mainWindow(), "_current_font", glb.mainWindow().font())
+
+
 def _register():
     menu = glb.mainWindow().menuBar()
     font = menu.addMenu("Font")
@@ -17,30 +40,32 @@ def _register():
 
 
 def _setFont():
-    (font, ok) = QtWidgets.QFontDialog.getFont(QtGui.QFont(glb.mainWindow().font()))
+    current_font = _getCurrentFont()
+    font, ok = QtWidgets.QFontDialog.getFont(current_font, glb.mainWindow())
     if ok:
-        glb.mainWindow().setFont(font)
+        _applyFontCss(font)
 
 
 def _saveAsDefault():
     os.makedirs(".lys/settings/", exist_ok=True)
     dic = {}
-    font = glb.mainWindow().font()
+    font = _getCurrentFont()
     dic["font"] = font.toString()
     np.save(_fontPath, dic)
 
 
 def _loadDefault():
     os.makedirs(".lys/settings/", exist_ok=True)
-    if os.path.exists(".lys/settings/font.npy"):
+    if os.path.exists(_fontPath):
         dic = np.load(_fontPath, allow_pickle=True).item()
         font = QtGui.QFont()
-        font.fromString(dic['font'])
-        glb.mainWindow().setFont(font)
+        font.fromString(dic["font"])
+        _applyFontCss(font)
 
 
 def _initializeFont():
-    glb.mainWindow().setFont(QtGui.QFont())
+    default_font = QtGui.QFont()
+    _applyFontCss(default_font)
 
 
 _register()
