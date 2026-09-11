@@ -14,6 +14,7 @@ from .Image import ImageData
 from .RGB import RGBData
 from .Vector import VectorData
 from .Contour import ContourData
+from .Scatter import ScatterData
 
 
 class CanvasData(CanvasPart):
@@ -34,7 +35,9 @@ class CanvasData(CanvasPart):
 
         Data type is determined by the shape and dtype of wave in addition to *contour* and *vector*.
 
-        When 1-dimensional data is added, line is added to the graph.
+        When 1-dimensional data is added and x-axis has 1 dimension, line is added to the graph.
+
+        When 1-dimensional data is added and x-axis has 2 dimensions, scatter plot is added.
 
         When 2-dimensional real data is added and *contour* is False, image is added.
 
@@ -58,7 +61,7 @@ class CanvasData(CanvasPart):
             vector(bool): See above description.
 
         """
-        func = {"line": self._append1d, "vector": self._appendVectorField, "image": self._append2d, "contour": self._appendContour, "rgb": self._append3d}
+        func = {"line": self._append1d, "vector": self._appendVectorField, "image": self._append2d, "contour": self._appendContour, "rgb": self._append3d, "scatter": self._appendScatter}
         if isinstance(wave, list) or isinstance(wave, tuple):
             return [self.Append(ww, axis=axis, contour=contour, vector=vector) for ww in wave]
         if isinstance(wave, WaveData):
@@ -89,6 +92,8 @@ class CanvasData(CanvasPart):
 
     def __checkType(self, wav, contour, vector):
         if wav.data.ndim == 1:
+            if wav.x.ndim == 2:
+                return "scatter"
             return "line"
         elif wav.data.ndim == 2:
             if wav.data.dtype == complex:
@@ -109,7 +114,7 @@ class CanvasData(CanvasPart):
         raise RuntimeError("[Graph] Can't append this data. shape = " + str(wav.data.shape))
 
     def __getDefaultZ(self, type):
-        id_def = {"line": 8000, "image": 2000, "vector": 6000, "contour": 4000, "rgb": 3000}
+        id_def = {"line": 8000, "image": 2000, "vector": 6000, "contour": 4000, "rgb": 3000, "scatter": 7000}
         data = self.getWaveData(type)
         return np.max([d.getZOrder() for d in data] + [id_def[type]]) + 1
 
@@ -157,6 +162,8 @@ class CanvasData(CanvasPart):
             return [data for data in self._Datalist if isinstance(data, VectorData)]
         if type == "contour":
             return [data for data in self._Datalist if isinstance(data, ContourData)]
+        if type == "scatter":
+            return [data for data in self._Datalist if isinstance(data, ScatterData)]
 
     def getLines(self):
         """
@@ -187,6 +194,12 @@ class CanvasData(CanvasPart):
         Return all VectorData in the canvas.
         """
         return self.getWaveData("vector")
+    
+    def getScatters(self):
+        """
+        Return all ScatterData in the canvas.
+        """
+        return self.getWaveData("scatter")
 
     def _save(self, dictionary):
         dic = {}
@@ -202,6 +215,7 @@ class CanvasData(CanvasPart):
             dic[i]['ZOrder'] = data.getZOrder()
             dic[i]['Contour'] = isinstance(data, ContourData)
             dic[i]['Vector'] = isinstance(data, VectorData)
+            dic[i]['Scatter'] = isinstance(data, ScatterData)
             if data.getFilter() is None:
                 dic[i]['Filter'] = None
             else:
@@ -266,3 +280,6 @@ class CanvasData(CanvasPart):
 
     def _appendVectorField(self, wav, axis):
         warnings.warn(str(type(self)) + " does not implement _appendVectorField(wave, axis) method.", NotImplementedWarning)
+    
+    def _appendScatter(self, wave, axis):
+        warnings.warn(str(type(self)) + " does not implement _appendScatter(wave, axis) method.", NotImplementedWarning)

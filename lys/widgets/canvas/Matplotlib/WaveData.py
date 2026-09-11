@@ -1,11 +1,14 @@
 
+import warnings
 import copy
 import numpy as np
 import matplotlib as mpl
-from matplotlib import lines, colors
+from matplotlib import lines, colors, markers
 from matplotlib import cm
+from matplotlib.collections import LineCollection
+from lys.errors import NotImplementedWarning
 
-from ..interface import CanvasData, LineData, ImageData, RGBData, VectorData, ContourData
+from ..interface import CanvasData, LineData, ImageData, RGBData, VectorData, ContourData, ScatterData
 
 
 def _setZ(obj, z):
@@ -422,6 +425,264 @@ class _MatplotlibContour(ContourData):
                 _setZ(o, z)
 
 
+class _MatplotlibScatter(ScatterData):
+    """Implementation of ScatterData for matplotlib"""
+
+    def __init__(self, canvas, wave, axis):
+        super().__init__(canvas, wave, axis)
+        self._axis = axis
+        self._colorbar = None
+        self._cpos = (0, 0)
+        self._csize = (0.04, 1)
+        x, y = wave.x[:,0], wave.x[:, 1]
+        self._marker = canvas.getAxes(axis).scatter(x, y, c=wave.data)
+        self._marker.set_edgecolors('face')
+        self._updateLineData(wave)
+        self._line = canvas.getAxes(axis).add_collection(LineCollection(self._lineAxis, array=wave.data))
+        self.setMarker("circle")
+        self.setColormap("viridis")
+        self.setLineStyle("None")
+        # self.canvas().canvasResized.connect(self.__resized)
+
+    def _setVisible(self, visible):
+        self._marker.set_visible(visible)
+        self._line.set_visible(visible)
+
+    def remove(self):
+        if self._colorbar is not None:
+            self._colorbar.remove()
+        self._marker.remove()
+
+    def _updateLineData(self, wave):
+        self._lineAxis = []
+        for i in range(wave.data.shape[0]):
+            if i == 0:
+                self._lineAxis.append([(wave.x[0,0], wave.x[0,1]), ((wave.x[0,0] + wave.x[1,0])/2, ((wave.x[0,1] + wave.x[1,1])/2))])
+            elif i == wave.data.shape[0] - 1:
+                self._lineAxis.append([((wave.x[i-1,0] + wave.x[i,0])/2, (wave.x[i-1,1] + wave.x[i,1])/2), (wave.x[i,0], wave.x[i,1])])
+            else:
+                self._lineAxis.append([((wave.x[i-1,0] + wave.x[i,0])/2, (wave.x[i-1,1] + wave.x[i,1])/2), ((wave.x[i,0] + wave.x[i+1,0])/2, (wave.x[i,1] + wave.x[i+1,1])/2)])
+
+    def _updateData(self):
+        wave = self.getFilteredWave()
+        self._updateLineData(wave)
+        self._line.set_setments(self._lineAxis)
+        # TODO:
+        # self.__update()
+        # data = self.getFilteredWave().data.swapaxes(0, 1)
+        # self._obj.set_data(np.ma.masked_invalid(data))
+        # self._obj.set_extent(_calcExtent2D(self.getFilteredWave()))
+
+    def _setZ(self, z):
+        _setZ(self._marker, z)
+        # for line in self._obj.lines[1] + self._obj.lines[2]:
+        #     _setZ(line, z - 1)
+
+    def _setColormap(self, cmap):
+        self.__setColormapGamma(cmap, self.getGamma())
+        
+    def _setGamma(self, gam):
+        self.__setColormapGamma(self.getColormap(), gam)
+    
+    def __setColormapGamma(self, cmap, gam):
+        wave = self.getFilteredWave()
+        colormap = copy.copy(cm.get_cmap(cmap))
+        if hasattr(colormap, "set_gamma"):
+            colormap.set_gamma(gam)
+        if self.getMarkerColorByData():
+            self._marker.set_array(wave.data)
+            self._marker.set_cmap(colormap)
+        if self.getLineColorByData():
+            # TODO: set line color map
+            pass
+
+    def _setColormapOpacity(self, value):
+        if self.getMarkerColorByData():
+            self._marker.set_alpha(value)
+        if self.getLineColorByData():
+            # TODO: set line alpha
+            pass
+
+    def _setColorRange(self, min, max):
+        if self.isLog():
+            norm = colors.LogNorm(vmin=min, vmax=max)
+        else:
+            norm = colors.Normalize(vmin=min, vmax=max)
+        if self.getMarkerColorByData():
+            self._marker.set_norm(norm)
+        if self.getLineColorByData():
+            # TODO: set line norm
+            pass
+
+    def _setLog(self, log):
+        min, max = self.getColorRange()
+        if log:
+            norm = colors.LogNorm(vmin=min, vmax=max)
+        else:
+            norm = colors.Normalize(vmin=min, vmax=max)
+        if self.getMarkerColorByData():
+            self._marker.set_norm(norm)
+        if self.getLineColorByData():
+            # TODO: set line norm
+            pass
+
+    def __showColorbar(self, visible, direction='vertical'):    #TODO
+        fig = self.canvas().getFigure()
+        if visible:
+            if self.getColorbarDirection() != direction:
+                self._colorbar.remove()
+                self._colorbar = None
+            if self._colorbar is None:
+                self._colorbar = fig.colorbar(self._obj, ax=self.canvas().getAxes(self._axis), orientation=direction)
+                self._colorbar.ax.set_aspect("auto")
+        else:
+            if self._colorbar is not None:
+                self._colorbar.remove()
+                self._colorbar = None
+
+    def _setColorbarVisible(self, visible):
+        self.__showColorbar(visible, self.getColorbarDirection())
+
+    def _setColorbarDirection(self, direction):
+        self.__showColorbar(self.getColorbarVisible(), direction)
+
+    def _setColorbarPosition(self, pos):
+        self._cpos = pos
+        self.__resized()
+
+    def _setColorbarSize(self, size):
+        self._csize = size
+        self.__resized()
+
+    def __resized(self):
+        if self._colorbar is not None:
+            m = self.canvas().getMargin()
+            if self.getColorbarDirection() == "vertical":
+                self._colorbar.ax.set_position([m[1] + self._cpos[0], m[2] + self._cpos[1], self._csize[0], (m[3] - m[2]) * self._csize[1]])
+            else:
+                self._colorbar.ax.set_position([m[0] + self._cpos[1], m[3] + self._cpos[0], (m[1] - m[0]) * self._csize[1], self._csize[0]])
+
+    def colorbar(self):
+        return self._colorbar
+
+    def _setMarker(self, marker):
+        if marker not in markers.MarkerStyle.markers:
+            reverse_map = {v: k for k, v in markers.MarkerStyle.markers.items() if isinstance(v, str)}
+            marker = reverse_map[marker]
+        new_marker = markers.MarkerStyle(marker=marker, fillstyle=self.getMarkerFilling())
+        self._marker.set_paths([new_marker.get_path().transformed(new_marker.get_transform())])
+        self.canvas().updateLegends()
+
+    def _setMarkerColor(self, color):
+        self._marker.set_array(None)
+        self._marker.set_color(color)
+        self.canvas().updateLegends()
+    
+    def _setMarkerSizeRange(self, max):
+        self.__setExpression(self._setMarkerSize, self.getMarkerSizeExpression(), max)
+
+    def __setExpression(self, func, expression, max):
+        abs_data = np.abs(self.getFilteredWave().data)
+        if expression == "Linear":
+            func(abs_data / np.max(abs_data) * max)
+        elif expression == "Log":
+            abs_data = abs_data / np.max(abs_data) * 9
+            func(np.log10(abs_data + 1) * max)
+        elif expression == "Sqrt":
+            abs_data = np.sqrt(abs_data)
+            func(abs_data / np.max(abs_data) * max)
+        else:
+            z = abs_data
+            arr = eval(expression)
+            func(arr / np.max(arr) * max)
+
+    def _setMarkerSizeExpression(self, expression):
+        self.__setExpression(self._setMarkerSize, expression, self.getMarkerSizeRange())
+
+    def _setMarkerOpacity(self, opacity):
+        self._marker.set_alpha(opacity)
+        self.canvas().updateLegends()
+
+    def _setMarkerSize(self, size):
+        if not hasattr(size, "__iter__"):
+            size = [size]
+        size = np.array(size)*10
+        self._marker.set_sizes(size)
+        self.canvas().updateLegends()
+
+    def _setMarkerThick(self, thick):
+        if not hasattr(thick, "__iter__"):
+            thick = [thick]
+        self._marker.set_linewidth(thick)
+        self.canvas().updateLegends()
+
+    def _setMarkerFilling(self, filling):
+        marker = self.getMarker()
+        if marker not in markers.MarkerStyle.markers:
+            reverse_map = {v: k for k, v in markers.MarkerStyle.markers.items() if isinstance(v, str)}
+            marker = reverse_map[marker]
+        new_marker = markers.MarkerStyle(marker=marker, fillstyle=filling)
+        self._marker.set_paths([new_marker.get_path().transformed(new_marker.get_transform())])
+        self.canvas().updateLegends()
+
+    def _setLineStyle(self, style):
+        self._line.set_linestyle(style)
+        self.canvas().updateLegends()
+
+    def _setLineWidth(self, width):
+        self._line.set_linewidth(width)
+        self.canvas().updateLegends()
+
+    def _setLineColor(self, color):
+        self._line.set_color(color)
+        self.canvas().updateLegends()
+
+    def _setLineWidthExpression(self, expression):
+        abs_data = np.abs(self.getFilteredWave().data)
+        range = self.getLineWidthRange()
+        if expression == "Linear":
+            self._setLineWidth((abs_data - np.min(abs_data)) / (np.max(abs_data) - np.min(abs_data)) * (range[1] - range[0]) + range[0])
+        elif expression == "Log":
+            abs_data = abs_data / np.max(abs_data) * 9
+            self._setLineWidth(np.log10(abs_data + 1) * (range[1] - range[0]) + range[0])
+        elif expression == "Sqrt":
+            abs_data = np.sqrt(abs_data)
+            self._setLineWidth(abs_data / np.max(abs_data) * (range[1] - range[0]) + range[0])
+        else:
+            z = abs_data
+            arr = eval(expression)
+            arr = (arr - np.min(arr)) / (np.max(arr) - np.min(arr)) * (range[1] - range[0]) + range[0]
+            self._setLineWidth(arr)
+      
+    def _setLineOpacity(self, opacity):
+        self._line.set_alpha(opacity)
+        self.canvas().updateLegends()
+
+    def __update(self, error=None, direction=None, capsize=None):
+        # xerr = yerr = error
+        # if direction == "x" or direction is None:
+        #     yerr = self._getErrorbarData(self.getErrorbar("y"))
+        # if direction == "y" or direction is None:
+        #     xerr = self._getErrorbarData(self.getErrorbar("x"))
+        # if capsize is None:
+        #     capsize = self.getCapSize()
+        self.canvas().updateLegends()
+
+    def _setErrorbar(self, error, direction):
+        self.__update(error, direction, self.getCapSize())
+
+    def _setCapSize(self, capsize):
+        self.__update(capsize=capsize)
+
+    def _setLegendVisible(self, visible):
+        self._appearance["legendVisible"] = visible
+        self.canvas().updateLegends()
+
+    def _setLegendLabel(self, label):
+        self._appearance["legendLabel"] = label
+        self.canvas().updateLegends()
+
+
 class _MatplotlibData(CanvasData):
     def _append1d(self, wave, axis):
         return _MatplotlibLine(self.canvas(), wave, axis)
@@ -437,6 +698,9 @@ class _MatplotlibData(CanvasData):
 
     def _appendVectorField(self, wav, axis):
         return _MatplotlibVector(self.canvas(), wav, axis)
+    
+    def _appendScatter(self, wav, axis):
+        return _MatplotlibScatter(self.canvas(), wav, axis)
 
     def _remove(self, data):
         data.remove()

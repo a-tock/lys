@@ -202,9 +202,11 @@ class CanvasAxes(CanvasPart):
         for d in data:
             wav = d.getFilteredWave()
             if wav.data.ndim == 1 and index == 1:
-                ax = wav.data
+                ax = wav.data if wav.axes[0].ndim == 1 else wav.axes[0][:, 1]
             else:
                 ax = wav.getAxis(index)
+                if wav.data.ndim == 1 and wav.axes[0].ndim > 1:
+                    ax = ax[:, 0]
             if ax.dtype == complex:
                 ax = np.absolute(ax)
             max = np.nanmax([*ax, max])
