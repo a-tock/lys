@@ -25,6 +25,8 @@ class Graph_test(unittest.TestCase):
             d = {}
             c = g.canvas
 
+            is_matplotlib = "MatplotLib" in str(c.__class__)
+
             # append data
             data1d = Wave([1, 2, 3])
             data2d = Wave([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
@@ -32,37 +34,51 @@ class Graph_test(unittest.TestCase):
             line = c.Append(data1d)
             line2 = c.Append(data1d, axis="TopRight")
             image = c.Append(data2d)
-            #ont = c.Append(data2d, contour=True)
+            cont = c.Append(data2d, contour=True)
             rgb = c.Append(data2dc)
-            # vec = c.Append(data2dc, vector=True)
+            if is_matplotlib:
+                scatter = c.Append(data1d, scatter=True)
+                scatter2 = c.Append(data1d, axis="TopRight", scatter=True)
+                vec = c.Append(data2dc, vector=True)
 
             # get wave data
             self.assertEqual(len(c.getLines()), 2)
             self.assertEqual(len(c.getImages()), 1)
-            #self.assertEqual(len(c.getContours()), 1)
+            self.assertEqual(len(c.getContours()), 1)
             self.assertEqual(len(c.getRGBs()), 1)
-            #self.assertEqual(len(c.getVectorFields()), 1)
+            if is_matplotlib:
+                self.assertEqual(len(c.getScatters()), 2)
+                self.assertEqual(len(c.getVectorFields()), 1)
 
             c.SaveAsDictionary(d)
 
             # remove
             c.Remove(line)
             c.Remove(image)
-            # c.Remove(cont)
+            c.Remove(cont)
             c.Remove(rgb)
+            if is_matplotlib:
+                c.Remove(vec)
+                c.Remove(scatter)
 
             self.assertEqual(len(c.getLines()), 1)
             self.assertEqual(len(c.getImages()), 0)
-            #self.assertEqual(len(c.getContours()), 0)
+            self.assertEqual(len(c.getContours()), 0)
             self.assertEqual(len(c.getRGBs()), 0)
+            if is_matplotlib:
+                self.assertEqual(len(c.getScatters()), 1)
+                self.assertEqual(len(c.getVectorFields()), 0)
 
             # load
             c.LoadFromDictionary(d)
             self.assertEqual(len(c.getLines()), 2)
             self.assertEqual(len(c.getImages()), 1)
-            #self.assertEqual(len(c.getContours()), 1)
+            self.assertEqual(len(c.getContours()), 1)
             self.assertEqual(len(c.getRGBs()), 1)
-
+            if is_matplotlib:
+                self.assertEqual(len(c.getScatters()), 2)
+                self.assertEqual(len(c.getVectorFields()), 1)
+            
             c.Clear()
             self.assertEqual(len(c.getWaveData()), 0)
 
@@ -259,3 +275,147 @@ class Graph_test(unittest.TestCase):
             self.assertEqual(line.getColor(), '#ff0000')
             self.assertEqual(line.getWidth(), 3)
             self.assertEqual(line.getStyle(), 'dashed')
+
+    def test_Scatter(self):
+        for g in [self.graphs[0]]:
+            c = g.canvas
+
+            scatter = c.Append(Wave([1, 2, 3]), scatter=True)
+
+            scatter.setColormap('bwr')
+            self.assertEqual(scatter.getColormap(), 'bwr')
+
+            scatter.setGamma(0.5)
+            self.assertEqual(scatter.getGamma(), 0.5)
+
+            scatter.setOpacity(0.7)
+            self.assertEqual(scatter.getOpacity(), 0.7)
+
+            scatter.setColorRange(1, 3)
+            self.assertEqual(scatter.getColorRange(), (1, 3))
+
+            scatter.setLog(True)
+            self.assertTrue(scatter.isLog())
+
+            scatter.setMarkerSizeByData(True)
+            self.assertTrue(scatter.getMarkerSizeByData())
+
+            scatter.setMarkerColorByData(True)
+            self.assertTrue(scatter.getMarkerColorByData())
+
+            scatter.setMarkerSizeExpression("2*z+1")
+            self.assertEqual(scatter.getMarkerSizeExpression(), "2*z+1")
+
+            scatter.setMarker('circle')
+            self.assertEqual(scatter.getMarker(), 'circle')
+
+            scatter.setMarkerSize(5)
+            self.assertEqual(scatter.getMarkerSize(), 5)
+
+            scatter.setMarkerThick(3)
+            self.assertEqual(scatter.getMarkerThick(), 3)
+
+            scatter.setMarkerFilling('full')
+            self.assertEqual(scatter.getMarkerFilling(), 'full')
+
+            scatter.setMarkerColor('#ff0000')
+            self.assertEqual(scatter.getMarkerColor(), '#ff0000')
+
+            scatter.setMarkerOpacity(0.8)
+            self.assertEqual(scatter.getMarkerOpacity(), 0.8)
+
+            scatter.setLineColorByData(True)
+            self.assertTrue(scatter.getLineColorByData())
+
+            scatter.setLineWidthByData(True)
+            self.assertTrue(scatter.getLineWidthByData())
+
+            scatter.setLineWidthExpression("-z-1")
+            self.assertEqual(scatter.getLineWidthExpression(), "-z-1")
+
+            scatter.setLineStyle('solid')
+            self.assertEqual(scatter.getLineStyle(), 'solid')
+
+            scatter.setLineWidth(2)
+            self.assertEqual(scatter.getLineWidth(), 2)
+
+            scatter.setLineColor('#00ff00')
+            self.assertEqual(scatter.getLineColor(), '#00ff00')
+
+            scatter.setLineOpacity(0.8)
+            self.assertEqual(scatter.getLineOpacity(), 0.8)
+
+            scatter.setErrorbar(4, direction="y")
+            scatter.setErrorbar(3, direction="x")
+            self.assertEqual(scatter.getErrorbar("y"), 4)
+            self.assertEqual(scatter.getErrorbar("x"), 3)
+
+            scatter.setCapSize(3)
+            self.assertEqual(scatter.getCapSize(), 3)
+
+            scatter.setLegendVisible(True)
+            self.assertTrue(scatter.getLegendVisible())
+
+            scatter.setLegendLabel("test")
+            self.assertEqual(scatter.getLegendLabel(), "test")
+
+            ap = scatter.saveAppearance()
+            scatter.setColormap('gray')
+            scatter.setGamma(0.4)
+            scatter.setOpacity(0.6)
+            scatter.setColorRange(2, 4)
+            scatter.setLog(False)
+
+            scatter.setMarkerSizeByData(False)
+            scatter.setMarkerColorByData(False)
+            scatter.setMarkerSizeExpression("5*z-8")
+            scatter.setMarker('nothing')
+            scatter.setMarkerSize(3)
+            scatter.setMarkerThick(2)
+            scatter.setMarkerFilling('none')
+            scatter.setMarkerColor('#0000ff')
+            scatter.setMarkerOpacity(0.6)
+
+            scatter.setLineColorByData(False)
+            scatter.setLineWidthByData(False)
+            scatter.setLineWidthExpression("z+8")
+            scatter.setLineStyle('none')
+            scatter.setLineWidth(5)
+            scatter.setLineColor('#ff0000')
+            scatter.setLineOpacity(0.4)
+
+            scatter.setErrorbar(5, direction="y")
+            scatter.setCapSize(2)
+            scatter.setLegendVisible(False)
+            scatter.setLegendLabel("aaa")
+
+            scatter.loadAppearance(ap)
+            self.assertEqual(scatter.getColormap(), 'bwr')
+            self.assertEqual(scatter.getGamma(), 0.5)
+            self.assertEqual(scatter.getOpacity(), 0.7)
+            self.assertEqual(scatter.getColorRange(), (1, 3))
+            self.assertTrue(scatter.isLog())
+
+            self.assertTrue(scatter.getMarkerSizeByData())
+            self.assertTrue(scatter.getMarkerColorByData())
+            self.assertEqual(scatter.getMarkerSizeExpression(), "2*z+1")
+            self.assertEqual(scatter.getMarker(), 'circle')
+            self.assertEqual(scatter.getMarkerSize(), 5)
+            self.assertEqual(scatter.getMarkerThick(), 3)
+            self.assertEqual(scatter.getMarkerFilling(), 'full')
+            self.assertEqual(scatter.getMarkerColor(), '#ff0000')
+            self.assertEqual(scatter.getMarkerOpacity(), 0.8)
+
+            self.assertTrue(scatter.getLineColorByData())
+            self.assertTrue(scatter.getLineWidthByData())
+            self.assertEqual(scatter.getLineWidthExpression(), "-z-1")
+            self.assertEqual(scatter.getLineStyle(), 'solid')
+            self.assertEqual(scatter.getLineWidth(), 2)
+            self.assertEqual(scatter.getLineColor(), '#00ff00')
+            self.assertEqual(scatter.getLineOpacity(), 0.8)
+
+            self.assertEqual(scatter.getErrorbar("y"), 4)
+            self.assertEqual(scatter.getCapSize(), 3)
+            self.assertTrue(scatter.getLegendVisible())
+            self.assertEqual(scatter.getLegendLabel(), "test")
+
