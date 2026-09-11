@@ -70,31 +70,35 @@ class ImageColorAdjustBox(QtWidgets.QWidget):
 
     @avoidCircularReference
     def __changerange(self, *args, **kwargs):
-        for im in self._images:
-            im.setColorRange(self.__start.getValue(), self.__end.getValue())
-            im.setLog(self.__cmap.isLog())
+        for data in self._datalist:
+            data.setColorRange(self.__start.getValue(), self.__end.getValue())
+            data.setLog(self.__cmap.isLog())
 
     @avoidCircularReference
     def __changeColormap(self, *args, **kwargs):
-        for im in self._images:
-            im.setColormap(self.__cmap.currentColor())
-            im.setGamma(self.__cmap.gamma())
-            im.setOpacity(self.__cmap.opacity())
+        for data in self._datalist:
+            data.setColormap(self.__cmap.currentColor())
+            data.setGamma(self.__cmap.gamma())
+            data.setOpacity(self.__cmap.opacity())
         self.__changerange()
 
     @avoidCircularReference
     def setImages(self, images):
-        self._images = images
-        if len(images) != 0:
+        self.setData(images)
+
+    @avoidCircularReference
+    def setData(self, datalist):
+        self._datalist = datalist
+        if len(datalist) != 0:
             self.__setEnabled(True)
-            self.__cmap.setColormap(images[0].getColormap())
-            self.__cmap.setOpacity(images[0].getOpacity())
-            self.__cmap.setGamma(images[0].getGamma())
-            self.__cmap.setLog(images[0].isLog())
-            min, max = images[0].getAutoColorRange()
+            self.__cmap.setColormap(datalist[0].getColormap())
+            self.__cmap.setOpacity(datalist[0].getOpacity())
+            self.__cmap.setGamma(datalist[0].getGamma())
+            self.__cmap.setLog(datalist[0].isLog())
+            min, max = datalist[0].getAutoColorRange()
             self.__start.setAutoValue(min)
             self.__end.setAutoValue(max)
-            min, max = images[0].getColorRange()
+            min, max = datalist[0].getColorRange()
             self.__start.setAbsolute(min)
             self.__end.setAbsolute(max)
         else:

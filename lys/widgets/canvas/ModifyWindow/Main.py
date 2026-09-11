@@ -8,6 +8,7 @@ from lys.widgets import LysSubWindow
 from .CanvasBaseGUI import DataSelectionBox, OffsetAdjustBox, FilterEditWidget
 from .LineSettingsGUI import AppearanceBox, ErrorBox, LegendBox
 from .ImageSettingsGUI import ImageColorAdjustBox, ColorbarAdjustBox, RGBColorAdjustBox, RGBMapAdjustBox, VectorAdjustBox, ContourAdjustBox
+from .ScatterSettingsGUI import AppearanceBox as ScatterAppearanceBox
 
 from .AxisSettingsGUI import AxisSelectionWidget, AxisAndTickBox
 from .AxisLabelSettingsGUI import AxisAndTickLabelBox, AxisFontBox
@@ -60,6 +61,7 @@ class ModifyWidget(QtWidgets.QTabWidget):
         self.addTab(_AreaTab(canvas), "Area")
         self.addTab(_AxisTab(canvas), "Axis")
         self.addTab(_LineTab(canvas), "Lines")
+        self.addTab(_ScatterTab(canvas), "Scatters")
         self.addTab(_ImageTab(canvas), "Images")
         self.addTab(_ContourTab(canvas), "Contours")
         self.addTab(_RGBTab(canvas), "RGB")
@@ -73,11 +75,12 @@ class ModifyWidget(QtWidgets.QTabWidget):
             self.setTabEnabled(0, False)
             self.setCurrentIndex(1)
         self.setTabEnabled(2, len(canvas.getLines()) != 0)
-        self.setTabEnabled(3, len(canvas.getImages()) != 0)
-        self.setTabEnabled(4, len(canvas.getContours()) != 0)
-        self.setTabEnabled(5, len(canvas.getRGBs()) != 0)
-        self.setTabEnabled(6, len(canvas.getVectorFields()) != 0)
-        self.setTabEnabled(7, len(canvas.getAnnotations()) != 0)
+        self.setTabEnabled(3, len(canvas.getScatters()) != 0)
+        self.setTabEnabled(4, len(canvas.getImages()) != 0)
+        self.setTabEnabled(5, len(canvas.getContours()) != 0)
+        self.setTabEnabled(6, len(canvas.getRGBs()) != 0)
+        self.setTabEnabled(7, len(canvas.getVectorFields()) != 0)
+        self.setTabEnabled(8, len(canvas.getAnnotations()) != 0)
 
     def selectTab(self, tab):
         list = [self.tabText(i) for i in range(self.count())]
@@ -329,6 +332,40 @@ class _VectorTab(QtWidgets.QWidget):
         layout.addWidget(tab)
         layout.addStretch()
 
+        self.setLayout(layout)
+
+
+class _ScatterTab(QtWidgets.QWidget):
+    def __init__(self, canvas):
+        super().__init__()
+        self.canvas = canvas
+        self._initlayout(canvas)
+
+    def _initlayout(self, canvas):
+        app = ScatterAppearanceBox(canvas)
+        # err = ErrorBox(canvas)
+        # off = OffsetAdjustBox()
+        # leg = LegendBox(canvas)
+        sel = DataSelectionBox(canvas, 1, "scatter")
+        filt = FilterEditWidget()
+
+        sel.selected.connect(app.setScatters)
+        # sel.selected.connect(err.setData)
+        # sel.selected.connect(off.setData)
+        # sel.selected.connect(leg.setData)
+        sel.selected.connect(filt.setData)
+
+        tab = QtWidgets.QTabWidget()
+        tab.addTab(app, 'Appearance')
+        # tab.addTab(err, 'Errorbar')
+        # tab.addTab(off, 'Offset')
+        # tab.addTab(leg, 'Legend')
+        tab.addTab(filt, 'Filter')
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(sel)
+        layout.addWidget(tab)
+        layout.addStretch()
         self.setLayout(layout)
 
 
