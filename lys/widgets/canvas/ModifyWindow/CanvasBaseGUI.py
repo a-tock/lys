@@ -316,14 +316,16 @@ class _SliceDialog(QtWidgets.QDialog):
 
 
 class OffsetAdjustBox(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, sideBySide=True):
         super().__init__()
-        self.__initlayout()
+        self.__initlayout(sideBySide)
 
-    def __initlayout(self):
+    def __initlayout(self, sideBySide):
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(self.__offsetBox())
-        vbox.addWidget(self.__sideBySideBox())
+        if sideBySide:
+            vbox.addWidget(self.__sideBySideBox())
+        vbox.addStretch()
         self.setLayout(vbox)
         self.__setEnabled(False)
 
@@ -403,10 +405,11 @@ class OffsetAdjustBox(QtWidgets.QWidget):
         self.__spin2.setEnabled(b)
         self.__spin3.setEnabled(b)
         self.__spin4.setEnabled(b)
-        self.__spinfrom.setEnabled(b)
-        self.__spindelta.setEnabled(b)
-        self.__type.setEnabled(b)
-        self.__set.setEnabled(b)
+        if hasattr(self, "__spinfrom"):
+            self.__spinfrom.setEnabled(b)
+            self.__spindelta.setEnabled(b)
+            self.__type.setEnabled(b)
+            self.__set.setEnabled(b)
 
     @avoidCircularReference
     def setData(self, data):
