@@ -182,14 +182,23 @@ class OffsetFilter(FilterInterface):
     def _execute(self, wave, *args, **kwargs):
         if wave.data.ndim == 1:
             xdata = np.array(wave.getAxis(0))
-            ydata = wave.data
-            if not self._offset[2] == 0.0:
-                xdata = xdata * self._offset[2]
-            if not self._offset[3] == 0.0:
-                ydata = ydata * self._offset[3]
-            xdata = xdata + self._offset[0]
-            ydata = ydata + self._offset[1]
-            return DaskWave(ydata, xdata, **wave.note)
+            if wave.getAxis(0).ndim == 1:
+                ydata = wave.data
+                if not self._offset[2] == 0.0:
+                    xdata = xdata * self._offset[2]
+                if not self._offset[3] == 0.0:
+                    ydata = ydata * self._offset[3]
+                xdata = xdata + self._offset[0]
+                ydata = ydata + self._offset[1]
+                return DaskWave(ydata, xdata, **wave.note)
+            elif wave.getAxis(0).ndim == 2:
+                if not self._offset[2] == 0.0:
+                    xdata[:, 0] = xdata[:, 0] * self._offset[2]
+                if not self._offset[3] == 0.0:
+                    xdata[:, 1] = xdata[:, 1] * self._offset[3]
+                xdata[:, 0] = xdata[:, 0] + self._offset[0]
+                xdata[:, 1] = xdata[:, 1] + self._offset[1]
+                return DaskWave(wave.data, xdata, **wave.note)
         elif wave.data.ndim == 2 or wave.data.ndim == 3:
             xdata = np.array(wave.getAxis(0))
             ydata = np.array(wave.getAxis(1))
