@@ -220,6 +220,7 @@ class ColormapSelection(QtWidgets.QWidget):
         self.__log = QtWidgets.QCheckBox("Log")
         self.__log.stateChanged.connect(self.__changed)
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
 
         layout_h = QtWidgets.QHBoxLayout()
         if opacity:
