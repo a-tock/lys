@@ -427,9 +427,11 @@ class _MatplotlibContour(ContourData):
 
 class _MatplotlibScatter(ScatterData):
     """Implementation of ScatterData for matplotlib"""
+    #TODO: legend, errorbar, axis filter
 
     def __init__(self, canvas, wave, axis):
         super().__init__(canvas, wave, axis)
+        self.__reverseMarkerMap = {v: k for k, v in markers.MarkerStyle.markers.items() if isinstance(v, str)}
         self._axis = axis
         self._colorbar = None
         self._cpos = (0, 0)
@@ -442,7 +444,7 @@ class _MatplotlibScatter(ScatterData):
         self.setMarker("circle")
         self.setColormap("viridis")
         self.setLineStyle("None")
-        # self.canvas().canvasResized.connect(self.__resized)
+        self.canvas().canvasResized.connect(self.__resized)
 
     def _setVisible(self, visible):
         self._marker.set_visible(visible)
@@ -465,8 +467,16 @@ class _MatplotlibScatter(ScatterData):
 
     def _updateData(self):
         wave = self.getFilteredWave()
+        self._marker.set_offsets(wave.x)
         self._updateLineData(wave)
-        self._line.set_setments(self._lineAxis)
+        self._line.set_segments(self._lineAxis)
+        self.__setColormapGamma()
+
+        if self.getMarkerSizeByData():
+            self._setMarkerSizeExpression(self.getMarkerSizeExpression())
+        if self.getLineWidthByData():
+            self._setLineWidthExpression(self.getLineWidthExpression())
+
         # TODO:
         # self.__update()
         # data = self.getFilteredWave().data.swapaxes(0, 1)
@@ -475,56 +485,69 @@ class _MatplotlibScatter(ScatterData):
 
     def _setZ(self, z):
         _setZ(self._marker, z)
-        # for line in self._obj.lines[1] + self._obj.lines[2]:
-        #     _setZ(line, z - 1)
+        _setZ(self._line, z - 1)
 
     def _setColormap(self, cmap):
-        self.__setColormapGamma(cmap, self.getGamma())
+        self.__setColormapGamma(cmap=cmap)
         
     def _setGamma(self, gam):
-        self.__setColormapGamma(self.getColormap(), gam)
+        self.__setColormapGamma(gam=gam)
     
-    def __setColormapGamma(self, cmap, gam):
+    def __setColormapGamma(self, cmap=None, gam=None):
+        if cmap is None:
+            cmap = self.getColormap()
+        if gam is None:
+            gam = self.getGamma()
         wave = self.getFilteredWave()
         colormap = copy.copy(cm.get_cmap(cmap))
         if hasattr(colormap, "set_gamma"):
             colormap.set_gamma(gam)
+
         if self.getMarkerColorByData():
             self._marker.set_array(wave.data)
             self._marker.set_cmap(colormap)
+            self.__setMarkerColorWithFilling()
+        
         if self.getLineColorByData():
-            # TODO: set line color map
-            pass
+            self._line.set_color(None)
+            self._line.set_array(wave.data)
+            self._line.set_cmap(colormap)
+        
+        self.__setColorRangeAndLog()
 
     def _setColormapOpacity(self, value):
         if self.getMarkerColorByData():
             self._marker.set_alpha(value)
         if self.getLineColorByData():
-            # TODO: set line alpha
-            pass
+            self._line.set_alpha(value)
+
+        self.canvas().updateLegends()
 
     def _setColorRange(self, min, max):
-        if self.isLog():
-            norm = colors.LogNorm(vmin=min, vmax=max)
-        else:
-            norm = colors.Normalize(vmin=min, vmax=max)
-        if self.getMarkerColorByData():
-            self._marker.set_norm(norm)
-        if self.getLineColorByData():
-            # TODO: set line norm
-            pass
+        self.__setColorRangeAndLog(range=(min, max))
 
     def _setLog(self, log):
-        min, max = self.getColorRange()
+        self.__setColorRangeAndLog(log=log)
+    
+    def __setColorRangeAndLog(self, range=None, log=None):
+        if range is None:
+            range = self.getColorRange()
+            if range is None:
+                self.canvas().updateLegends()
+                return
+        if log is None:
+            log = self.isLog()
+
         if log:
-            norm = colors.LogNorm(vmin=min, vmax=max)
+            norm = colors.LogNorm(vmin=range[0], vmax=range[1])
         else:
-            norm = colors.Normalize(vmin=min, vmax=max)
+            norm = colors.Normalize(vmin=range[0], vmax=range[1])
         if self.getMarkerColorByData():
             self._marker.set_norm(norm)
         if self.getLineColorByData():
-            # TODO: set line norm
-            pass
+            self._line.set_norm(norm)
+
+        self.canvas().updateLegends()
 
     def __showColorbar(self, visible, direction='vertical'):    #TODO
         fig = self.canvas().getFigure()
@@ -533,7 +556,7 @@ class _MatplotlibScatter(ScatterData):
                 self._colorbar.remove()
                 self._colorbar = None
             if self._colorbar is None:
-                self._colorbar = fig.colorbar(self._obj, ax=self.canvas().getAxes(self._axis), orientation=direction)
+                self._colorbar = fig.colorbar(self._marker, ax=self.canvas().getAxes(self._axis), orientation=direction)
                 self._colorbar.ax.set_aspect("auto")
         else:
             if self._colorbar is not None:
@@ -566,9 +589,9 @@ class _MatplotlibScatter(ScatterData):
         return self._colorbar
 
     def _setMarker(self, marker):
-        if marker not in markers.MarkerStyle.markers:
-            reverse_map = {v: k for k, v in markers.MarkerStyle.markers.items() if isinstance(v, str)}
-            marker = reverse_map[marker]
+        if marker in ["None", "none", "nothing"]:
+            marker = ''
+        marker = self.__reverseMarkerMap.get(marker, marker)
         new_marker = markers.MarkerStyle(marker=marker, fillstyle=self.getMarkerFilling())
         self._marker.set_paths([new_marker.get_path().transformed(new_marker.get_transform())])
         self.canvas().updateLegends()
@@ -576,28 +599,32 @@ class _MatplotlibScatter(ScatterData):
     def _setMarkerColor(self, color):
         self._marker.set_array(None)
         self._marker.set_color(color)
+        self.__setMarkerColorWithFilling()
         self.canvas().updateLegends()
     
     def _setMarkerSizeRange(self, max):
-        self.__setExpression(self._setMarkerSize, self.getMarkerSizeExpression(), max)
+        self._setMarkerSize(self.__evaluateExpression(self.getMarkerSizeExpression(), max))
 
-    def __setExpression(self, func, expression, max):
+    def __evaluateExpression(self, expression, max):
         abs_data = np.abs(self.getFilteredWave().data)
         if expression == "Linear":
-            func(abs_data / np.max(abs_data) * max)
+            return abs_data / np.max(abs_data) * max
         elif expression == "Log":
             abs_data = abs_data / np.max(abs_data) * 9
-            func(np.log10(abs_data + 1) * max)
+            return np.log10(abs_data + 1) * max
         elif expression == "Sqrt":
             abs_data = np.sqrt(abs_data)
-            func(abs_data / np.max(abs_data) * max)
+            return abs_data / np.max(abs_data) * max
+        elif expression == "Square":
+            abs_data = abs_data ** 2
+            return abs_data / np.max(abs_data) * max
         else:
             z = abs_data
             arr = eval(expression)
-            func(arr / np.max(arr) * max)
+            return arr / np.max(arr) * max
 
     def _setMarkerSizeExpression(self, expression):
-        self.__setExpression(self._setMarkerSize, expression, self.getMarkerSizeRange())
+        self._setMarkerSize(self.__evaluateExpression(expression, self.getMarkerSizeRange()))
 
     def _setMarkerOpacity(self, opacity):
         self._marker.set_alpha(opacity)
@@ -614,45 +641,57 @@ class _MatplotlibScatter(ScatterData):
         if not hasattr(thick, "__iter__"):
             thick = [thick]
         self._marker.set_linewidth(thick)
+        self.__setMarkerColorWithFilling()
         self.canvas().updateLegends()
 
     def _setMarkerFilling(self, filling):
         marker = self.getMarker()
-        if marker not in markers.MarkerStyle.markers:
-            reverse_map = {v: k for k, v in markers.MarkerStyle.markers.items() if isinstance(v, str)}
-            marker = reverse_map[marker]
+        if marker in ["None", "none", "nothing"]:
+            marker = ''
+        marker = self.__reverseMarkerMap.get(marker, marker)
         new_marker = markers.MarkerStyle(marker=marker, fillstyle=filling)
         self._marker.set_paths([new_marker.get_path().transformed(new_marker.get_transform())])
+        self.__setMarkerColorWithFilling(filling)
         self.canvas().updateLegends()
+    
+    def __setMarkerColorWithFilling(self, filling=None):
+        if filling is None:
+            filling = self.getMarkerFilling()
+
+        if filling == "none":
+            self._marker.set_edgecolor(None if self.getMarkerColorByData() else self.getMarkerColor())
+            self._marker.set_facecolor('none')
+        else:
+            self._marker.set_facecolor(None if self.getMarkerColorByData() else self.getMarkerColor())
+            self._marker.set_edgecolor('face')
 
     def _setLineStyle(self, style):
-        self._line.set_linestyle(style)
+        if style == "None":
+            self._line.set_linewidth(0)
+        else:
+            self.setLineWidthByData(self.getLineWidthByData())
+            self._line.set_linestyle(style)
+        
         self.canvas().updateLegends()
 
     def _setLineWidth(self, width):
+        if self.getLineStyle() == "None":
+            return
         self._line.set_linewidth(width)
         self.canvas().updateLegends()
 
     def _setLineColor(self, color):
+        self._line.set_array(None)
         self._line.set_color(color)
+        self.canvas().updateLegends()
+    
+    def _setLineWidthRange(self, max):
+        self._setLineWidth(self.__evaluateExpression(self.getLineWidthExpression(), max))
         self.canvas().updateLegends()
 
     def _setLineWidthExpression(self, expression):
-        abs_data = np.abs(self.getFilteredWave().data)
-        range = self.getLineWidthRange()
-        if expression == "Linear":
-            self._setLineWidth((abs_data - np.min(abs_data)) / (np.max(abs_data) - np.min(abs_data)) * (range[1] - range[0]) + range[0])
-        elif expression == "Log":
-            abs_data = abs_data / np.max(abs_data) * 9
-            self._setLineWidth(np.log10(abs_data + 1) * (range[1] - range[0]) + range[0])
-        elif expression == "Sqrt":
-            abs_data = np.sqrt(abs_data)
-            self._setLineWidth(abs_data / np.max(abs_data) * (range[1] - range[0]) + range[0])
-        else:
-            z = abs_data
-            arr = eval(expression)
-            arr = (arr - np.min(arr)) / (np.max(arr) - np.min(arr)) * (range[1] - range[0]) + range[0]
-            self._setLineWidth(arr)
+        self._setLineWidth(self.__evaluateExpression(expression, self.getLineWidthRange()))
+        self.canvas().updateLegends()
       
     def _setLineOpacity(self, opacity):
         self._line.set_alpha(opacity)

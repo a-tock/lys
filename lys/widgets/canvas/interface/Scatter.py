@@ -35,8 +35,8 @@ class ScatterData(WaveData):
         Args:
             colormap(str): colormap string such as 'gray'.
         """
-        self._setColormap(cmap)
         self.__setAppearance('Colormap', cmap)
+        self._setColormap(cmap)
 
     def getColormap(self):
         """
@@ -55,8 +55,8 @@ class ScatterData(WaveData):
         Args:
             gamma(float): The gamma value.
         """
-        self._setGamma(gamma)
         self.__setAppearance('ColorGamma', gamma)
+        self._setGamma(gamma)
 
     def getGamma(self):
         """
@@ -75,8 +75,8 @@ class ScatterData(WaveData):
         Args:
             opacity(float): The opacity.
         """
-        self._setColormapOpacity(opacity)
         self.__setAppearance('ColormapOpacity', opacity)
+        self._setColormapOpacity(opacity)
 
     def getOpacity(self):
         """
@@ -106,8 +106,8 @@ class ScatterData(WaveData):
         if self.isLog() and (min <= 0 or max <= 0):
             warnings.warn('[Image.setColorRange] Values must all be positive to use log plot. Log is disabled.', RuntimeWarning)
             self.setLog(True)
-        self._setColorRange(min, max)
         self.__setAppearance('Range', (min, max))
+        self._setColorRange(min, max)
 
     def getColorRange(self):
         """
@@ -145,8 +145,8 @@ class ScatterData(WaveData):
         Args:
             log(bool): If *log* is True, logarithmic scale is enabled.
         """
-        self._setLog(log)
         self.__setAppearance('Log', log)
+        self._setLog(log)
 
     def isLog(self):
         """
@@ -309,23 +309,24 @@ class ScatterData(WaveData):
         return self.__getAppearance('LineWidthExpression', 'z')
 
     @saveCanvas
-    def setLineWidthRange(self, range):
+    def setLineWidthRange(self, max):
         """
         Set the range for the line width.
         
         Args:
-            range (list): The range for the line width.
+            max (float): The maximum value for the line width.
         """
-        self.__setAppearance('LineWidthRange', range)
+        self.__setAppearance('LineWidthRange', max)
+        self._setLineWidthRange(max)
     
     def getLineWidthRange(self):
         """
         Get the range for the line width.
         
         Returns:
-            list: The range for the line width.
+            float: The maximum value for the line width.
         """
-        return self.__getAppearance('LineWidthRange', [0.5, 5])
+        return self.__getAppearance('LineWidthRange', 5)
 
     @saveCanvas
     def setLineColor(self, color):
@@ -375,8 +376,8 @@ class ScatterData(WaveData):
         Args:
             style('solid', 'dashed', 'dashdot', 'dotted', 'None'): Style string. 
         """
-        self._setLineStyle(style)
         self.__setAppearance('LineStyle', style)
+        self._setLineStyle(style)
 
     def getLineStyle(self):
         """
@@ -395,8 +396,8 @@ class ScatterData(WaveData):
         Args:
             width(float): The width of the line.
         """
-        self._setLineWidth(width)
         self.__setAppearance('LineWidth', width)
+        self._setLineWidth(width)
 
     def getLineWidth(self):
         """
@@ -415,8 +416,8 @@ class ScatterData(WaveData):
         Args:
             marker(str): String that indicate the marker shape. List of style strings can be seen from matplotlib.lines.Line2D.markers.values(). 
         """
-        self._setMarker(marker)
         self.__setAppearance('Marker', marker)
+        self._setMarker(marker)
 
     def getMarker(self):
         """
@@ -458,8 +459,8 @@ class ScatterData(WaveData):
         Args:
             color(str): The color of the marker.
         """
-        self._setMarkerColor(color)
         self.__setAppearance('MarkerColor', color)
+        self._setMarkerColor(color)
 
     def getMarkerColor(self):
         """
@@ -825,6 +826,9 @@ class ScatterData(WaveData):
 
     def _setLineColor(self, color):
         warnings.warn(str(type(self)) + " does not implement _setLineColor(color) method.", NotImplementedWarning)
+
+    def _setLineWidthRange(self, max):
+        warnings.warn(str(type(self)) + " does not implement _setLineWidthRange(max) method.", NotImplementedWarning)
 
     def _setLineWidthExpression(self, expression):
         warnings.warn(str(type(self)) + " does not implement _setLineWidthExpression(expression) method.", NotImplementedWarning)

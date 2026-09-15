@@ -1,5 +1,5 @@
 import numpy as np
-from matplotlib import cm
+from matplotlib import cm, markers
 from matplotlib.lines import Line2D
 
 from lys.Qt import QtCore, QtWidgets
@@ -11,19 +11,19 @@ from .ImageSettingsGUI import ImageColorAdjustBox
 from .FontGUI import FontSelector
 
 
-class _LineStyleAdjustBox(QtWidgets.QGroupBox):
+class _LineStyleAdjustBox(QtWidgets.QWidget):
     __stylelist = ['solid', 'dashed', 'dashdot', 'dotted', 'None']
-    __widthlist = ["Linear", "Log", "Sqrt", "Expression"]
+    __widthlist = ["Linear", "Log", "Sqrt", "Square", "Expression"]
     styleChanged = QtCore.pyqtSignal(str)
     useSolidColorChanged = QtCore.pyqtSignal(bool)
     colorChanged = QtCore.pyqtSignal(str)
     useDataBasedWidthChanged = QtCore.pyqtSignal(bool)
     widthChanged = QtCore.pyqtSignal(float)
-    widthRangeChanged = QtCore.pyqtSignal(float, float)
+    widthRangeChanged = QtCore.pyqtSignal(float)
     widthExpressionChanged = QtCore.pyqtSignal(str)
 
     def __init__(self, canvas):
-        super().__init__("Line")
+        super().__init__()
         self.canvas = canvas
         self.__initlayout()
 
@@ -46,16 +46,15 @@ class _LineStyleAdjustBox(QtWidgets.QGroupBox):
         self.__widthcombo = QtWidgets.QComboBox()
         self.__widthcombo.addItems(self.__widthlist)
         self.__widthcombo.activated.connect(lambda: self.__onWidthComboChanged(self.__widthcombo.currentText()))
-        # self.__widthcombo.currentTextChanged.connect(self.__onWidthComboChanged)
 
-        self.__widthmin = QtWidgets.QDoubleSpinBox()
         self.__widthmax = QtWidgets.QDoubleSpinBox()
-        self.__widthmin.setRange(0, np.inf)
         self.__widthmax.setRange(0, np.inf)
-        self.__widthmin.valueChanged.connect(lambda: self.widthRangeChanged.emit(self.__widthmin.value(), self.__widthmax.value()))
-        self.__widthmax.valueChanged.connect(lambda: self.widthRangeChanged.emit(self.__widthmin.value(), self.__widthmax.value()))
+        self.__widthmax.valueChanged.connect(lambda: self.widthRangeChanged.emit(self.__widthmax.value()))
 
         self.__widthexp = QtWidgets.QLineEdit()
+        self.__expapply = QtWidgets.QPushButton("Apply")
+        self.__expapply.clicked.connect(lambda: self.sizeExpressionChanged.emit(self.__sizeexp.text()))
+
 
         layout = QtWidgets.QGridLayout()
         layout.addWidget(QtWidgets.QLabel('Type'), 0, 0, 1, 2)
@@ -66,12 +65,12 @@ class _LineStyleAdjustBox(QtWidgets.QGroupBox):
         layout.addWidget(QtWidgets.QLabel('Width'), 2, 2, 1, 1)
         layout.addWidget(self.__widthspin, 2, 3, 1, 1)
         layout.addWidget(self.__widthcombo, 3, 0, 1, 2)
-        layout.addWidget(QtWidgets.QLabel("min"), 3, 2, 1, 1)
-        layout.addWidget(self.__widthmin, 3, 3, 1, 1)
-        layout.addWidget(QtWidgets.QLabel("max"), 4, 2, 1, 1)
-        layout.addWidget(self.__widthmax, 4, 3, 1, 1)
-        layout.addWidget(QtWidgets.QLabel("Use 'z' for data values"), 5, 0, 1, 4)
-        layout.addWidget(self.__widthexp, 6, 0, 1, 4)
+        layout.addWidget(QtWidgets.QLabel("max"), 3, 2, 1, 1)
+        layout.addWidget(self.__widthmax, 3, 3, 1, 1)
+        layout.addWidget(QtWidgets.QLabel("Use 'z' for data values"), 4, 0, 1, 4)
+        layout.addWidget(self.__widthexp, 5, 0, 1, 3)
+        layout.addWidget(self.__expapply, 5, 3, 1, 1)
+        layout.setRowStretch(6, 1)
         self.setLayout(layout)
 
 
@@ -90,9 +89,8 @@ class _LineStyleAdjustBox(QtWidgets.QGroupBox):
     def setDataBasedWidth(self, bool):
         self.__widthcheck.setChecked(bool)
 
-    def setWidthRange(self, range):
-        self.__widthmin.setValue(range[0])
-        self.__widthmax.setValue(range[1])
+    def setWidthRange(self, max):
+        self.__widthmax.setValue(max)
 
     def setWidthExpression(self, expr):
         if expr in self.__widthlist[:-1]:
@@ -114,9 +112,9 @@ class _LineStyleAdjustBox(QtWidgets.QGroupBox):
             self.__color.setEnabled(False)
             self.__widthspin.setEnabled(False)
             self.__widthcombo.setEnabled(False)
-            self.__widthmin.setEnabled(False)
             self.__widthmax.setEnabled(False)
             self.__widthexp.setEnabled(False)
+            self.__expapply.setEnabled(False)
     
     def __onUseSolidColorChanged(self, state=None):
         if state is None:
@@ -128,30 +126,26 @@ class _LineStyleAdjustBox(QtWidgets.QGroupBox):
         if state is None:
             state = self.__widthcheck.isChecked()
         self.__widthspin.setEnabled(not state)
-        # self.__widthspin.setVisible(not state)
         self.__widthcombo.setEnabled(state)
-        # self.__widthcombo.setVisible(state)
-        self.__widthmin.setEnabled(state)
-        # self.__widthmin.setVisible(state)
         self.__widthmax.setEnabled(state)
-        # self.__widthmax.setVisible(state)
         if state:
             self.__onWidthComboChanged()
         else:
             self.__widthexp.setEnabled(False)
+            self.__expapply.setEnabled(False)
         self.useDataBasedWidthChanged.emit(state)
 
     def __onWidthComboChanged(self, text=None):
         if text is None:
             text = self.__widthcombo.currentText()
         self.__widthexp.setEnabled(text == "Expression")
+        self.__expapply.setEnabled(text == "Expression")
         if text != "Expression":
             self.widthExpressionChanged.emit(text)
-        # print("__onWidthComboChanged", text)
 
 
-class _MarkerStyleAdjustBox(QtWidgets.QGroupBox):
-    __sizelist = ["Linear", "Log", "Sqrt", "Expression"]
+class _MarkerStyleAdjustBox(QtWidgets.QWidget):
+    __sizelist = ["Linear", "Log", "Sqrt", "Square", "Expression"]
     styleChanged = QtCore.pyqtSignal(str)
     fillingChanged = QtCore.pyqtSignal(str)
     sizeChanged = QtCore.pyqtSignal(float)
@@ -163,15 +157,14 @@ class _MarkerStyleAdjustBox(QtWidgets.QGroupBox):
     sizeExpressionChanged = QtCore.pyqtSignal(str)
 
     def __init__(self, canvas):
-        super().__init__("Marker")
+        super().__init__()
         self.canvas = canvas
-        self.__stylelist = list(Line2D.markers.values())
-        self.__fillist = Line2D.fillStyles
+        # self.__stylelist = list(Line2D.markers.values())
+        self.__stylelist = ["None"] + [v for v in markers.MarkerStyle.markers.values()]
+        self.__fillist = markers.MarkerStyle.fillstyles
         self.__initlayout()
 
     def __initlayout(self):
-        gl = QtWidgets.QGridLayout()
-
         self.__useSolidColor = QtWidgets.QCheckBox("Solid Color")
         self.__useSolidColor.stateChanged.connect(self.__onUseSolidColorChanged)
         self.__color = ColorSelection()
@@ -197,7 +190,6 @@ class _MarkerStyleAdjustBox(QtWidgets.QGroupBox):
         self.__sizecombo = QtWidgets.QComboBox()
         self.__sizecombo.addItems(self.__sizelist)
         self.__sizecombo.activated.connect(lambda: self.__onSizeComboChanged(self.__sizecombo.currentText()))
-        # self.__sizecombo.currentTextChanged.connect(self.__onSizeComboChanged)
 
         self.__sizemax = QtWidgets.QDoubleSpinBox()
         self.__sizemax.setRange(0, np.inf)
@@ -225,6 +217,7 @@ class _MarkerStyleAdjustBox(QtWidgets.QGroupBox):
         layout.addWidget(QtWidgets.QLabel("Use 'z' for data values"), 5, 0, 1, 4)
         layout.addWidget(self.__sizeexp, 6, 0, 1, 3)
         layout.addWidget(self.__expapply, 6, 3, 1, 1)
+        layout.setRowStretch(7, 1)
         self.setLayout(layout)
 
     def setStyle(self, marker):
@@ -259,7 +252,6 @@ class _MarkerStyleAdjustBox(QtWidgets.QGroupBox):
         self.__sizecheck.setChecked(enabled)
   
     def setEnabled(self, b):
-        # print("setEnabled", b)
         self.__style.setEnabled(b)
         self.__useSolidColor.setEnabled(b)
         self.__sizecheck.setEnabled(b)
@@ -318,7 +310,7 @@ class AppearanceBox(QtWidgets.QWidget):
         self._line.colorChanged.connect(lambda c: [scatter.setLineColor(c) for scatter in self._scatters])
         self._line.useDataBasedWidthChanged.connect(lambda b: [scatter.setLineWidthByData(b) for scatter in self._scatters])
         self._line.widthChanged.connect(lambda w: [scatter.setLineWidth(w) for scatter in self._scatters])
-        self._line.widthRangeChanged.connect(lambda min_val, max_val: [scatter.setLineWidthRange([min_val, max_val]) for scatter in self._scatters])
+        self._line.widthRangeChanged.connect(lambda val: [scatter.setLineWidthRange(val) for scatter in self._scatters])
         self._line.widthExpressionChanged.connect(lambda expr: [scatter.setLineWidthExpression(expr) for scatter in self._scatters])
 
         self._marker = _MarkerStyleAdjustBox(canvas)
@@ -340,15 +332,19 @@ class AppearanceBox(QtWidgets.QWidget):
         vlayout.addWidget(self._colormap)
         cmapgroup.setLayout(vlayout)
         layout.addWidget(cmapgroup)
-        layout.addWidget(self._line)
-        layout.addWidget(self._marker)
+
+        tab = QtWidgets.QTabWidget()
+        tab.addTab(self._marker, "Marker")
+        tab.addTab(self._line, "Line")
+        layout.addWidget(tab)
 
         self.setLayout(layout)
         self.__setEnabled(False)
 
     def setScatters(self, scatters):
+        self._update_scatter(scatters)
         # print("setScatters", len(scatters))
-        self._scatters = scatters
+        # self._scatters = scatters
         if len(scatters) != 0:
             self._colormap.setData(scatters)
 
@@ -378,3 +374,18 @@ class AppearanceBox(QtWidgets.QWidget):
         self._colormap.setEnabled(b)
         self._line.setEnabled(b)
         self._marker.setEnabled(b)
+    
+    def _update_scatter(self, scatters):
+        if len(self._scatters) > 0 and (len(scatters) == 0 or self._scatters[0] != scatters[0]):
+            try:
+                self._scatters[0].modified.disconnect(self._on_scatter_modified)
+            except (TypeError, RuntimeError):
+                pass
+
+        if len(scatters) > 0:
+            scatters[0].modified.connect(self._on_scatter_modified)
+
+        self._scatters = scatters
+
+    def _on_scatter_modified(self):
+        self._colormap.setData(self._scatters)
