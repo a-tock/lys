@@ -82,7 +82,6 @@ class ImageColorAdjustBox(QtWidgets.QWidget):
             data.setOpacity(self.__cmap.opacity())
         self.__changerange()
 
-    @avoidCircularReference
     def setImages(self, images):
         self.setData(images)
 
