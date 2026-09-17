@@ -583,8 +583,8 @@ class ScatterData(WaveData):
         Args:
             thick(float): The thickness of the marker edge.
         """
-        self._setMarkerThick(thick)
         self.__setAppearance('MarkerThick', thick)
+        self._setMarkerThick(thick)
 
     def getMarkerThick(self):
         """
@@ -604,8 +604,8 @@ class ScatterData(WaveData):
             type('full', 'left', 'ritght', 'top', 'bottom', or 'none'): Style string. 
         """
 
-        self._setMarkerFilling(type)
         self.__setAppearance('MarkerFilling', type)
+        self._setMarkerFilling(type)
 
     def getMarkerFilling(self):
         """
@@ -667,7 +667,7 @@ class ScatterData(WaveData):
         if isinstance(err, str):
             err = self.getWave().note.get(err)
         if hasattr(err, "__iter__"):
-            err = np.array(err)
+            err = np.abs(np.array(err))
         if err is not None:
             if not self.__checkErrorShape(err):
                 err = None
@@ -701,8 +701,8 @@ class ScatterData(WaveData):
         Args:
             visible(bool): The visibility.
         """
-        self._setLegendVisible(visible)
         self.__setAppearance("legendVisible", visible)
+        self._setLegendVisible(visible)
 
     def getLegendVisible(self):
         """
@@ -721,8 +721,8 @@ class ScatterData(WaveData):
         Args:
             label(str): The label.
         """
-        self._setLegendLabel(label)
         self.__setAppearance("legendLabel", label)
+        self._setLegendLabel(label)
 
     def getLegendLabel(self):
         """

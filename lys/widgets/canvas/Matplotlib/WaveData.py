@@ -31,6 +31,10 @@ class _MatplotlibLine(LineData):
     def _setVisible(self, visible):
         self._appearance['Visible'] = visible
         self._obj.lines[0].set_visible(visible)
+        for line in self._obj.lines[1] + self._obj.lines[2]:
+            if line:
+                line.set_visible(visible)
+
         self.canvas().updateLegends()
 
     def _setZ(self, z):

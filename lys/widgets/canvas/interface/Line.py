@@ -228,7 +228,7 @@ class LineData(WaveData):
         if isinstance(err, str):
             err = self.getWave().note.get(err)
         if hasattr(err, "__iter__"):
-            err = np.array(err)
+            err = np.abs(np.array(err))
         if err is not None:
             if not self.__checkErrorShape(err):
                 err = None
@@ -262,8 +262,8 @@ class LineData(WaveData):
         Args:
             visible(bool): The visibility.
         """
-        self._setLegendVisible(visible)
         self.__setAppearance("legendVisible", visible)
+        self._setLegendVisible(visible)
 
     def getLegendVisible(self):
         """
@@ -282,8 +282,8 @@ class LineData(WaveData):
         Args:
             label(str): The label.
         """
-        self._setLegendLabel(label)
         self.__setAppearance("legendLabel", label)
+        self._setLegendLabel(label)
 
     def getLegendLabel(self):
         """

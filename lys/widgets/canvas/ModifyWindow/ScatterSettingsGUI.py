@@ -1,10 +1,8 @@
 import numpy as np
-from matplotlib import cm, markers
-from matplotlib.lines import Line2D
+from matplotlib import markers
 
 from lys.Qt import QtCore, QtWidgets
-from lys.widgets import ColormapSelection, ColorSelection, ScientificSpinBox
-from lys.decorators import avoidCircularReference
+from lys.widgets import ColorSelection
 
 
 from .ImageSettingsGUI import ImageColorAdjustBox

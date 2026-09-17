@@ -205,6 +205,7 @@ class _ErrorAdjustBox(QtWidgets.QGroupBox):
         self.__type.currentTextChanged.connect(self.__typeChanged)
 
         self.__value = ScientificSpinBox(valueChanged=self.__valueChanged)
+        self.__value.setRange(0, np.inf)
         self.__valueLabel = QtWidgets.QLabel("Value")
 
         self.__note = QtWidgets.QLineEdit(textChanged=self.__noteChanged)
