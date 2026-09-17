@@ -95,7 +95,7 @@ class ExtendCanvas(CanvasBase, FigureCanvas):
     def __ExpandGraph(self, x, y, axis, step):
         if not self.axisIsValid(axis):
             return
-        ratio = 1.05**step
+        ratio = 0.95**step
         loc = self.__GlobalToRatio(x, y, self.getAxes("BottomLeft"))
         old = self.getAxisRange(axis)
         if self.getAxisMode(axis) == "linear":
