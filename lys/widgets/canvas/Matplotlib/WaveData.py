@@ -124,11 +124,9 @@ class _MatplotlibLine(LineData):
         self.__update(capsize=capsize)
 
     def _setLegendVisible(self, visible):
-        self._appearance["legendVisible"] = visible
         self.canvas().updateLegends()
 
     def _setLegendLabel(self, label):
-        self._appearance["legendLabel"] = label
         self.canvas().updateLegends()
 
 
@@ -431,11 +429,11 @@ class _MatplotlibContour(ContourData):
 
 class _MatplotlibScatter(ScatterData):
     """Implementation of ScatterData for matplotlib"""
-    #TODO: legend, errorbar, axis filter
 
     def __init__(self, canvas, wave, axis):
         super().__init__(canvas, wave, axis)
         self.__reverseMarkerMap = {v: k for k, v in markers.MarkerStyle.markers.items() if isinstance(v, str)}
+        self.__reverseMarkerMap.update({"None": "", "none": ""})
         self._axis = axis
         self._colorbar = None
         self._cpos = (0, 0)
@@ -448,16 +446,22 @@ class _MatplotlibScatter(ScatterData):
         self.setMarker("circle")
         self.setColormap("viridis")
         self.setLineStyle("None")
+        self._errorbar = canvas.getAxes(axis).errorbar(x, y, fmt='none')
         self.canvas().canvasResized.connect(self.__resized)
 
     def _setVisible(self, visible):
         self._marker.set_visible(visible)
         self._line.set_visible(visible)
+        for line in self._errorbar.lines[1] + self._errorbar.lines[2]:
+            if line:
+                line.set_visible(visible)
 
     def remove(self):
         if self._colorbar is not None:
             self._colorbar.remove()
         self._marker.remove()
+        self._line.remove()
+        self._errorbar.remove()
 
     def _updateLineData(self, wave):
         self._lineAxis = []
@@ -474,6 +478,7 @@ class _MatplotlibScatter(ScatterData):
         self._marker.set_offsets(wave.x)
         self._updateLineData(wave)
         self._line.set_segments(self._lineAxis)
+        self.__updateErrorbar()
         self.__setColormapGamma()
 
         if self.getMarkerSizeByData():
@@ -481,15 +486,12 @@ class _MatplotlibScatter(ScatterData):
         if self.getLineWidthByData():
             self._setLineWidthExpression(self.getLineWidthExpression())
 
-        # TODO:
-        # self.__update()
-        # data = self.getFilteredWave().data.swapaxes(0, 1)
-        # self._obj.set_data(np.ma.masked_invalid(data))
-        # self._obj.set_extent(_calcExtent2D(self.getFilteredWave()))
-
     def _setZ(self, z):
         _setZ(self._marker, z)
         _setZ(self._line, z - 1)
+        for line in self._errorbar.lines[1] + self._errorbar.lines[2]:
+            if line:
+                _setZ(line, z - 2)
 
     def _setColormap(self, cmap):
         self.__setColormapGamma(cmap=cmap)
@@ -524,7 +526,6 @@ class _MatplotlibScatter(ScatterData):
             self._marker.set_alpha(value)
         if self.getLineColorByData():
             self._line.set_alpha(value)
-
         self.canvas().updateLegends()
 
     def _setColorRange(self, min, max):
@@ -553,7 +554,7 @@ class _MatplotlibScatter(ScatterData):
 
         self.canvas().updateLegends()
 
-    def __showColorbar(self, visible, direction='vertical'):    #TODO
+    def __showColorbar(self, visible, direction='vertical'):
         fig = self.canvas().getFigure()
         if visible:
             if self.getColorbarDirection() != direction:
@@ -593,8 +594,6 @@ class _MatplotlibScatter(ScatterData):
         return self._colorbar
 
     def _setMarker(self, marker):
-        if marker in ["None", "none", "nothing"]:
-            marker = ''
         marker = self.__reverseMarkerMap.get(marker, marker)
         new_marker = markers.MarkerStyle(marker=marker, fillstyle=self.getMarkerFilling())
         self._marker.set_paths([new_marker.get_path().transformed(new_marker.get_transform())])
@@ -604,6 +603,9 @@ class _MatplotlibScatter(ScatterData):
         self._marker.set_array(None)
         self._marker.set_color(color)
         self.__setMarkerColorWithFilling()
+        for line in self._errorbar.lines[1] + self._errorbar.lines[2]:
+            if line:
+                line.set_color(color)
         self.canvas().updateLegends()
     
     def _setMarkerSizeRange(self, max):
@@ -637,7 +639,7 @@ class _MatplotlibScatter(ScatterData):
     def _setMarkerSize(self, size):
         if not hasattr(size, "__iter__"):
             size = [size]
-        size = np.array(size)*10
+        size = np.array(size)**2
         self._marker.set_sizes(size)
         self.canvas().updateLegends()
 
@@ -675,7 +677,6 @@ class _MatplotlibScatter(ScatterData):
         else:
             self.setLineWidthByData(self.getLineWidthByData())
             self._line.set_linestyle(style)
-        
         self.canvas().updateLegends()
 
     def _setLineWidth(self, width):
@@ -701,21 +702,29 @@ class _MatplotlibScatter(ScatterData):
         self._line.set_alpha(opacity)
         self.canvas().updateLegends()
 
-    def __update(self, error=None, direction=None, capsize=None):
-        # xerr = yerr = error
-        # if direction == "x" or direction is None:
-        #     yerr = self._getErrorbarData(self.getErrorbar("y"))
-        # if direction == "y" or direction is None:
-        #     xerr = self._getErrorbarData(self.getErrorbar("x"))
-        # if capsize is None:
-        #     capsize = self.getCapSize()
+    def __updateErrorbar(self, error=None, direction=None, capsize=None):
+        self._errorbar.remove()
+        wave = self.getFilteredWave()
+        xerr = yerr = error
+        if direction == "x" or direction is None:
+            yerr = self._getErrorbarData(self.getErrorbar("y"))
+        if direction == "y" or direction is None:
+            xerr = self._getErrorbarData(self.getErrorbar("x"))
+        if capsize is None:
+            capsize = self.getCapSize()
+        self._errorbar = self.canvas().getAxes(self._axis).errorbar(wave.x[:,0], wave.x[:,1], xerr=xerr, yerr=yerr, capsize=capsize, fmt='none')
+        self._setVisible(self.getVisible())
+        self._setZ(self.getZOrder())
+        for line in self._errorbar.lines[1] + self._errorbar.lines[2]:
+            if line:
+                line.set_color(self.getMarkerColor())
         self.canvas().updateLegends()
 
     def _setErrorbar(self, error, direction):
-        self.__update(error, direction, self.getCapSize())
+        self.__updateErrorbar(error, direction)
 
     def _setCapSize(self, capsize):
-        self.__update(capsize=capsize)
+        self.__updateErrorbar(capsize=capsize)
 
     def _setLegendVisible(self, visible):
         self._appearance["legendVisible"] = visible
