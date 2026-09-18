@@ -34,7 +34,6 @@ class _MatplotlibLine(LineData):
         for line in self._obj.lines[1] + self._obj.lines[2]:
             if line:
                 line.set_visible(visible)
-
         self.canvas().updateLegends()
 
     def _setZ(self, z):
@@ -44,8 +43,7 @@ class _MatplotlibLine(LineData):
 
     def _setColor(self, color):
         self._obj.lines[0].set_color(color)
-        for line in self._obj.lines[1] + self._obj.lines[2]:
-            line.set_color(color)
+        self._setSyncErrorbarColor(self.getSyncErrorbarColor())
         self.canvas().updateLegends()
 
     def _setStyle(self, style):
@@ -97,6 +95,10 @@ class _MatplotlibLine(LineData):
         color = self.getColor()
         if color is not None:
             self._setColor(color)
+        if not self.getSyncErrorbarColor():
+            errorbar_color = self.getErrorbarColor()
+            if errorbar_color is not None:
+                self._setErrorbarColor(errorbar_color)
         style = self.getStyle()
         if style is not None:
             self._setStyle(style)
@@ -119,6 +121,14 @@ class _MatplotlibLine(LineData):
 
     def _setErrorbar(self, error, direction):
         self.__update(error, direction, self.getCapSize())
+    
+    def _setSyncErrorbarColor(self, bool):
+        self._setErrorbarColor(self.getColor() if bool else self.getErrorbarColor())
+
+    def _setErrorbarColor(self, color):
+        for line in self._obj.lines[1] + self._obj.lines[2]:
+            line.set_color(color)
+        self.canvas().updateLegends()
 
     def _setCapSize(self, capsize):
         self.__update(capsize=capsize)
@@ -169,16 +179,31 @@ class _MatplotlibImage(ImageData):
         _setZ(self._obj, z)
 
     def _setColormap(self, cmap):
-        colormap = copy.copy(cm.get_cmap(cmap))
-        if hasattr(colormap, "set_gamma"):
-            colormap.set_gamma(self.getGamma())
+        colormap = self.__calcColormap(cmap=cmap)
+        self._obj.set_cmap(colormap)
+    
+    def _setColormapSubrange(self, range):
+        colormap = self.__calcColormap(range=range)
         self._obj.set_cmap(colormap)
 
     def _setGamma(self, gam):
-        colormap = copy.copy(cm.get_cmap(self.getColormap()))
+        colormap = self.__calcColormap(gam=gam)
+        self._obj.set_cmap(colormap)
+
+    def __calcColormap(self, cmap=None, gam=None, range=None):
+        if cmap is None:
+            cmap = self.getColormap()
+        if gam is None:
+            gam = self.getGamma()
+        if range is None:
+            range = self.getColormapSubrange()
+        colormap = copy.copy(cm.get_cmap(cmap))
         if hasattr(colormap, "set_gamma"):
             colormap.set_gamma(gam)
-        self._obj.set_cmap(colormap)
+
+        colors_array = colormap(np.linspace(*range, 256))
+        sub_cmap = colors.ListedColormap(colors_array, name=f"{colormap.name}_subrange")
+        return sub_cmap
 
     def _setColorRange(self, min, max):
         if self.isLog():
@@ -443,10 +468,10 @@ class _MatplotlibScatter(ScatterData):
         self._marker.set_edgecolors('face')
         self._updateLineData(wave)
         self._line = canvas.getAxes(axis).add_collection(LineCollection(self._lineAxis, array=wave.data))
+        self._errorbar = canvas.getAxes(axis).errorbar(x, y, fmt='none')
         self.setMarker("circle")
         self.setColormap("viridis")
         self.setLineStyle("None")
-        self._errorbar = canvas.getAxes(axis).errorbar(x, y, fmt='none')
         self.canvas().canvasResized.connect(self.__resized)
 
     def _setVisible(self, visible):
@@ -499,20 +524,19 @@ class _MatplotlibScatter(ScatterData):
     def _setGamma(self, gam):
         self.__setColormapGamma(gam=gam)
     
-    def __setColormapGamma(self, cmap=None, gam=None):
-        if cmap is None:
-            cmap = self.getColormap()
-        if gam is None:
-            gam = self.getGamma()
-        wave = self.getFilteredWave()
-        colormap = copy.copy(cm.get_cmap(cmap))
-        if hasattr(colormap, "set_gamma"):
-            colormap.set_gamma(gam)
+    def _setColormapSubrange(self, min, max):
+        self.__setColormapGamma(range=(min, max))
+    
+    def __setColormapGamma(self, cmap=None, gam=None, range=None):
+        colormap = self.__calcColormap(cmap, gam, range)
 
+        wave = self.getFilteredWave()
         if self.getMarkerColorByData():
             self._marker.set_array(wave.data)
             self._marker.set_cmap(colormap)
             self.__setMarkerColorWithFilling()
+            # if self.getSyncErrorbarColor():
+            #     self._setSyncErrorbarColor(True)
         
         if self.getLineColorByData():
             self._line.set_color(None)
@@ -520,10 +544,27 @@ class _MatplotlibScatter(ScatterData):
             self._line.set_cmap(colormap)
         
         self.__setColorRangeAndLog()
+    
+    def __calcColormap(self, cmap=None, gam=None, range=None):
+        if cmap is None:
+            cmap = self.getColormap()
+        if gam is None:
+            gam = self.getGamma()
+        if range is None:
+            range = self.getColormapSubrange()
+        colormap = copy.copy(cm.get_cmap(cmap))
+        if hasattr(colormap, "set_gamma"):
+            colormap.set_gamma(gam)
+
+        colors_array = colormap(np.linspace(*range, 256))
+        sub_cmap = colors.ListedColormap(colors_array, name=f"{colormap.name}_subrange")
+        return sub_cmap
 
     def _setColormapOpacity(self, value):
         if self.getMarkerColorByData():
             self._marker.set_alpha(value)
+            # if self.getSyncErrorbarColor():
+            #     self._setSyncErrorbarColor(True)
         if self.getLineColorByData():
             self._line.set_alpha(value)
         self.canvas().updateLegends()
@@ -535,24 +576,32 @@ class _MatplotlibScatter(ScatterData):
         self.__setColorRangeAndLog(log=log)
     
     def __setColorRangeAndLog(self, range=None, log=None):
-        if range is None:
-            range = self.getColorRange()
-            if range is None:
-                self.canvas().updateLegends()
-                return
-        if log is None:
-            log = self.isLog()
-
-        if log:
-            norm = colors.LogNorm(vmin=range[0], vmax=range[1])
-        else:
-            norm = colors.Normalize(vmin=range[0], vmax=range[1])
+        norm = self.__calcNorm(range, log)
+        if norm is None:
+            self.canvas().updateLegends()
+            return
         if self.getMarkerColorByData():
             self._marker.set_norm(norm)
+            # if self.getSyncErrorbarColor():
+            #     for line in self._errorbar.lines[2]:
+            #         line.set_norm(norm)
         if self.getLineColorByData():
             self._line.set_norm(norm)
 
         self.canvas().updateLegends()
+    
+    def __calcNorm(self, range, log):
+        if range is None:
+            range = self.getColorRange()
+            if range is None:
+                return None
+
+        if log is None:
+            log = self.isLog()
+        if log:
+            return colors.LogNorm(vmin=range[0], vmax=range[1])
+        else:
+            return colors.Normalize(vmin=range[0], vmax=range[1])
 
     def __showColorbar(self, visible, direction='vertical'):
         fig = self.canvas().getFigure()
@@ -603,9 +652,8 @@ class _MatplotlibScatter(ScatterData):
         self._marker.set_array(None)
         self._marker.set_color(color)
         self.__setMarkerColorWithFilling()
-        for line in self._errorbar.lines[1] + self._errorbar.lines[2]:
-            if line:
-                line.set_color(color)
+        if self.getSyncErrorbarColor():
+            self._setSyncErrorbarColor(True)
         self.canvas().updateLegends()
     
     def _setMarkerSizeRange(self, max):
@@ -715,9 +763,16 @@ class _MatplotlibScatter(ScatterData):
         self._errorbar = self.canvas().getAxes(self._axis).errorbar(wave.x[:,0], wave.x[:,1], xerr=xerr, yerr=yerr, capsize=capsize, fmt='none')
         self._setVisible(self.getVisible())
         self._setZ(self.getZOrder())
+        self._setSyncErrorbarColor(self.getSyncErrorbarColor())
+        self.canvas().updateLegends()
+
+    def _setSyncErrorbarColor(self, bool):
+        self._setErrorbarColor(self.getMarkerColor() if bool else self.getErrorbarColor())
+
+    def _setErrorbarColor(self, color):
         for line in self._errorbar.lines[1] + self._errorbar.lines[2]:
             if line:
-                line.set_color(self.getMarkerColor())
+                line.set_color(color)
         self.canvas().updateLegends()
 
     def _setErrorbar(self, error, direction):
