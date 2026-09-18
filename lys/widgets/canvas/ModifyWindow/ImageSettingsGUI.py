@@ -80,6 +80,7 @@ class ImageColorAdjustBox(QtWidgets.QWidget):
             data.setColormap(self.__cmap.currentColor())
             data.setGamma(self.__cmap.gamma())
             data.setOpacity(self.__cmap.opacity())
+            data.setColormapSubrange(*self.__cmap.range())
         self.__changerange()
 
     def setImages(self, images):
@@ -94,6 +95,7 @@ class ImageColorAdjustBox(QtWidgets.QWidget):
             self.__cmap.setOpacity(datalist[0].getOpacity())
             self.__cmap.setGamma(datalist[0].getGamma())
             self.__cmap.setLog(datalist[0].isLog())
+            self.__cmap.setRange(*datalist[0].getColormapSubrange())
             min, max = datalist[0].getAutoColorRange()
             self.__start.setAutoValue(min)
             self.__end.setAutoValue(max)

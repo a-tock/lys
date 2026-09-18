@@ -85,6 +85,27 @@ class ImageData(WaveData):
             float: The opacity.
         """
         return self.__getAppearance('Opacity', 1)
+    
+    @saveCanvas
+    def setColormapSubrange(self, min, max):
+        """
+        Set the colormap subrange of the image.
+
+        Args:
+            min(float): The minimum value of the subrange.
+            max(float): The maximum value of the subrange.
+        """
+        self.__setAppearance('ColormapSubrange', (min, max))
+        self._setColormapSubrange((min, max))
+
+    def getColormapSubrange(self):
+        """
+        Get the colormap subrange of the image.
+
+        Return:
+            tuple: The colormap subrange.
+        """
+        return self.__getAppearance('ColormapSubrange', (0.0, 1.0))
 
     @saveCanvas
     def setColorRange(self, min='auto', max='auto'):
@@ -244,6 +265,7 @@ class ImageData(WaveData):
         self.setColormap(appearance.get('Colormap', 'gray'))
         self.setGamma(appearance.get('ColorGamma', 1.0))
         self.setOpacity(appearance.get('Opacity', 1.0))
+        self.setColormapSubrange(*appearance.get('ColormapSubrange', (0.0, 1.0)))
         self.setColorRange(*appearance.get('Range', self.getAutoColorRange()))
         self.setLog(appearance.get('Log', False))
         self.setColorbarDirection(appearance.get('colorbarDirection', "vertical"))
@@ -262,6 +284,9 @@ class ImageData(WaveData):
 
     def _setColorRange(self, min, max):
         warnings.warn(str(type(self)) + " does not implement _setColorRange(min, max) method.", NotImplementedWarning)
+    
+    def _setColormapSubrange(self, min, max):
+        warnings.warn(str(type(self)) + " does not implement _setColormapSubrange(min, max) method.", NotImplementedWarning)
 
     def _setLog(self, log):
         warnings.warn(str(type(self)) + " does not implement _setLog(log) method.", NotImplementedWarning)
