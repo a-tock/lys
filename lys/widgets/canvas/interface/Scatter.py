@@ -88,6 +88,27 @@ class ScatterData(WaveData):
         return self.__getAppearance('ColormapOpacity', 1.0)
 
     @saveCanvas
+    def setColormapSubrange(self, min, max):
+        """
+        Set the colormap subrange of the scatter plot.
+
+        Args:
+            min(float): The minimum value of the subrange.
+            max(float): The maximum value of the subrange.
+        """
+        self.__setAppearance('ColormapSubrange', (min, max))
+        self._setColormapSubrange(min, max)
+
+    def getColormapSubrange(self):
+        """
+        Get the colormap subrange of the scatter plot.
+
+        Return:
+            tuple: The colormap subrange.
+        """
+        return self.__getAppearance('ColormapSubrange', (0.0, 1.0))
+
+    @saveCanvas
     def setColorRange(self, min='auto', max='auto'):
         """
         Set the color range of the scatter plot.
@@ -617,6 +638,46 @@ class ScatterData(WaveData):
         return self.__getAppearance('MarkerFilling')
 
     @saveCanvas
+    def setSyncErrorbarColor(self, sync):
+        """
+        Set whether the errorbar color is synchronized with the marker color.
+        
+        Args:
+            sync(bool): Whether the errorbar color is synchronized with the marker color.
+        """
+        self.__setAppearance('SyncErrorbarColor', sync)
+        self._setSyncErrorbarColor(sync)
+
+    def getSyncErrorbarColor(self):
+        """
+        Get whether the errorbar color is synchronized with the marker color.
+        
+        Returns:
+            bool: Whether the errorbar color is synchronized with the marker color.
+        """
+        return self.__getAppearance('SyncErrorbarColor', True)
+
+    @saveCanvas
+    def setErrorbarColor(self, color):
+        """
+        Set the color of the errorbar.
+        
+        Args:
+            color(str or tuple): The color of the errorbar.
+        """
+        self.__setAppearance('ErrorbarColor', color)
+        self._setErrorbarColor(color)
+
+    def getErrorbarColor(self):
+        """
+        Get the color of the errorbar.
+        
+        Returns:
+            str or tuple: The color of the errorbar.
+        """
+        return self.__getAppearance('ErrorbarColor')
+
+    @saveCanvas
     def setErrorbar(self, error, direction="y"):
         """
         Set the errorbar.
@@ -752,14 +813,17 @@ class ScatterData(WaveData):
         self.setLineColorByData(appearance.get('LineColorByData', False))
         self.setLineWidthExpression(appearance.get('LineWidthExpression', 'z'))
         self.setLineWidthByData(appearance.get('LineWidthByData', False))
+        self.setSyncErrorbarColor(appearance.get('SyncErrorbarColor', True))
+        self.setErrorbarColor(appearance.get('ErrorbarColor', 'gray'))
         self.setErrorbar(appearance.get('xerror'), "x")
         self.setErrorbar(appearance.get('yerror'), "y")
         self.setCapSize(appearance.get('capsize', 0))
         self.setLegendLabel(appearance.get('legendLabel', self.getName()))
         self.setLegendVisible(appearance.get('legendVisible', False))
-        self.setColormap(appearance.get('Colormap', 'gray'))
+        self.setColormap(appearance.get('Colormap', 'brg'))
         self.setGamma(appearance.get('ColorGamma', 1.0))
         self.setOpacity(appearance.get('ColormapOpacity', 1.0))
+        self.setColormapSubrange(*appearance.get('ColormapSubrange', (0.0, 0.5)))
         self.setColorRange(*appearance.get('Range', self.getAutoColorRange()))
         self.setLog(appearance.get('Log', False))
         self.setColorbarVisible(appearance.get('colorbarVisible', False))
@@ -778,6 +842,9 @@ class ScatterData(WaveData):
 
     def _setColorRange(self, min, max):
         warnings.warn(str(type(self)) + " does not implement _setColorRange(min, max) method.", NotImplementedWarning)
+    
+    def _setColormapSubrange(self, min, max):
+        warnings.warn(str(type(self)) + " does not implement _setColormapSubrange(min, max) method.", NotImplementedWarning)
 
     def _setLog(self, log):
         warnings.warn(str(type(self)) + " does not implement _setLog(log) method.", NotImplementedWarning)
@@ -836,6 +903,12 @@ class ScatterData(WaveData):
     def _setLineOpacity(self, opacity):
         warnings.warn(str(type(self)) + " does not implement _setLineOpacity(opacity) method.", NotImplementedWarning)
     
+    def _setSyncErrorbarColor(self, bool):
+        warnings.warn(str(type(self)) + " does not implement _setSyncErrorbarColor(use) method.", NotImplementedWarning)
+
+    def _setErrorbarColor(self, color):
+        warnings.warn(str(type(self)) + " does not implement _setErrorbarColor(color) method.", NotImplementedWarning)
+
     def _setErrorbar(self, error, direction):
         warnings.warn(str(type(self)) + " does not implement _setErrorbar(error, direction) method.", NotImplementedWarning)
     
