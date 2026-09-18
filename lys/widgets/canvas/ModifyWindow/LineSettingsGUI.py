@@ -20,7 +20,7 @@ class _LineColorSideBySideDialog(QtWidgets.QDialog):
         h.addWidget(QtWidgets.QPushButton('O K', clicked=self.accept))
         h.addWidget(QtWidgets.QPushButton('CANCEL', clicked=self.reject))
 
-        self.csel = ColormapSelection(opacity=False, log=False, reverse=True, gamma=False)
+        self.csel = ColormapSelection(opacity=False, log=False, reverse=True, gamma=False, range=False)
 
         lay = QtWidgets.QVBoxLayout()
         lay.addWidget(self.csel)
@@ -271,6 +271,13 @@ class _ErrorAdjustBox(QtWidgets.QGroupBox):
 class ErrorBox(QtWidgets.QWidget):
     def __init__(self, canvas):
         super().__init__()
+
+        self._useMarkerColor = QtWidgets.QCheckBox("Use Marker Color")
+        self._useMarkerColor.setChecked(True)
+        self._useMarkerColor.toggled.connect(self.__useMarkerColorToggled)
+        self._color = ColorSelection()
+        self._color.colorChanged.connect(self.__colorChanged)
+
         self.__cap = ScientificSpinBox(valueChanged=self.__capChanged)
         self.__cap.setRange(0, np.inf)
         h1 = QtWidgets.QHBoxLayout()
@@ -280,6 +287,8 @@ class ErrorBox(QtWidgets.QWidget):
         self._x = _ErrorAdjustBox("x")
         self._y = _ErrorAdjustBox("y")
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self._useMarkerColor)
+        layout.addWidget(self._color)
         layout.addLayout(h1)
         layout.addWidget(self._y)
         layout.addWidget(self._x)
@@ -287,12 +296,19 @@ class ErrorBox(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def setEnabled(self, b):
+        self._useMarkerColor.setEnabled(b)
         self.__cap.setEnabled(b)
+        if b:
+            self.__useMarkerColorToggled(self._useMarkerColor.isChecked())
+        else:
+            self._color.setEnabled(False)
 
     def setData(self, data):
         self._data = data
         if len(data) > 0:
             self.setEnabled(True)
+            self._useMarkerColor.setChecked(data[0].getSyncErrorbarColor())
+            self._color.setColor(data[0].getErrorbarColor())
             self.__cap.setValue(data[0].getCapSize())
         else:
             self.setEnabled(False)
@@ -302,6 +318,15 @@ class ErrorBox(QtWidgets.QWidget):
     def __capChanged(self):
         for d in self._data:
             d.setCapSize(self.__cap.value())
+    
+    def __colorChanged(self, color):
+        for d in self._data:
+            d.setErrorbarColor(color)
+    
+    def __useMarkerColorToggled(self, checked):
+        self._color.setEnabled(not checked)
+        for d in self._data:
+            d.setSyncErrorbarColor(checked)
 
 
 class LegendBox(QtWidgets.QWidget):

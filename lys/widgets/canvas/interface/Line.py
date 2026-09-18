@@ -44,8 +44,8 @@ class LineData(WaveData):
         Args:
             color(str): rgb color string such as #ff0000.
         """
-        self._setColor(color)
         self.__setAppearance('LineColor', color)
+        self._setColor(color)
 
     def getColor(self):
         """
@@ -178,6 +178,46 @@ class LineData(WaveData):
         return self.__getAppearance('MarkerFilling')
 
     @saveCanvas
+    def setSyncErrorbarColor(self, bool):
+        """
+        Set whether to use the marker color for the errorbar.
+        
+        Args:
+            bool(bool): Whether to use the marker color for the errorbar.
+        """
+        self._setSyncErrorbarColor(bool)
+        self.__setAppearance('SyncErrorbarColor', bool)
+    
+    def getSyncErrorbarColor(self):
+        """
+        Get whether to use the marker color for the errorbar.
+        
+        Return:
+            bool: Whether to use the marker color for the errorbar.
+        """
+        return self.__getAppearance('SyncErrorbarColor', True)
+
+    @saveCanvas
+    def setErrorbarColor(self, color):
+        """
+        Set the color of the errorbar.
+
+        Args:
+            color(str or tuple): The color of the errorbar.
+        """
+        self._setErrorbarColor(color)
+        self.__setAppearance('ErrorbarColor', color)
+    
+    def getErrorbarColor(self):
+        """
+        Get the color of the errorbar.
+
+        Return:
+            str or tuple: The color of the errorbar.
+        """
+        return self.__getAppearance('ErrorbarColor', self.getColor())
+
+    @saveCanvas
     def setErrorbar(self, error, direction="y"):
         """
         Set the errorbar.
@@ -300,14 +340,15 @@ class LineData(WaveData):
         else:
             if not hasattr(self.canvas(), "_lineColorGenerator"):
                 self.canvas()._lineColorGenerator = _ColorGenerator()
-            color = self.canvas()._lineColorGenerator.nextColor()
-            self.setColor(color)
+            self.setColor(self.canvas()._lineColorGenerator.nextColor())
         self.setStyle(appearance.get('LineStyle', 'solid'))
         self.setWidth(appearance.get('LineWidth', 2))
         self.setMarker(appearance.get('Marker', 'nothing'))
         self.setMarkerSize(appearance.get('MarkerSize', 6))
         self.setMarkerFilling(appearance.get('MarkerFilling', 'full'))
         self.setMarkerThick(appearance.get('MarkerThick', 1))
+        self.setSyncErrorbarColor(appearance.get('SyncErrorbarColor', True))
+        self.setErrorbarColor(appearance.get('ErrorbarColor', 'black'))
         self.setErrorbar(appearance.get('xerror'), "x")
         self.setErrorbar(appearance.get('yerror'), "y")
         self.setCapSize(appearance.get('capsize', 0))
@@ -340,3 +381,15 @@ class LineData(WaveData):
 
     def _setLegendLabel(self, label):
         warnings.warn(str(type(self)) + " does not implement _setLegendLabel(label) method.", NotImplementedWarning)
+
+    def _setErrorbar(self, error, direction):
+        warnings.warn(str(type(self)) + " does not implement _setErrorbar(error, direction) method.", NotImplementedWarning)
+    
+    def _setSyncErrorbarColor(self, bool):
+        warnings.warn(str(type(self)) + " does not implement _setSyncErrorbarColor(use) method.", NotImplementedWarning)
+
+    def _setErrorbarColor(self, color):
+        warnings.warn(str(type(self)) + " does not implement _setErrorbarColor(color) method.", NotImplementedWarning)
+    
+    def _setCapSize(self, size):
+        warnings.warn(str(type(self)) + " does not implement _setCapSize(size) method.", NotImplementedWarning)
