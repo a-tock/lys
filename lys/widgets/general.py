@@ -202,7 +202,7 @@ class ColormapSelection(QtWidgets.QWidget):
         def setColormap(self, cmap):
             self.setCurrentIndex(self.__list.index(cmap))
 
-    def __init__(self, opacity=True, log=True, reverse=True, gamma=True):
+    def __init__(self, opacity=True, log=True, reverse=True, gamma=True, range=True):
         super().__init__()
         self.__combo = ColormapSelection._ColorCombo()
         self.__combo.activated.connect(self.__changed)
@@ -216,9 +216,19 @@ class ColormapSelection(QtWidgets.QWidget):
         self.__gamma.setDecimals(2)
         self.__gamma.valueChanged.connect(self.__changed)
         self.__check = QtWidgets.QCheckBox("Rev")
-        self.__check.stateChanged.connect(self.__changed)
+        self.__check.stateChanged.connect(self.__revToggled)
         self.__log = QtWidgets.QCheckBox("Log")
         self.__log.stateChanged.connect(self.__changed)
+        self.__min = QtWidgets.QDoubleSpinBox()
+        self.__min.setRange(0, 1)
+        self.__min.setDecimals(2)
+        self.__min.setSingleStep(0.02)
+        self.__min.valueChanged.connect(self.__changed)
+        self.__max = QtWidgets.QDoubleSpinBox()
+        self.__max.setRange(0, 1)
+        self.__max.setDecimals(2)
+        self.__max.setSingleStep(0.02)
+        self.__max.valueChanged.connect(self.__changed)
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -234,8 +244,22 @@ class ColormapSelection(QtWidgets.QWidget):
         if log:
             layout_h.addWidget(self.__log)
 
+        layout_h2 = QtWidgets.QHBoxLayout()
+        if range:
+            layout_h2.addWidget(QtWidgets.QLabel('Color Range'))
+            label_min = QtWidgets.QLabel('Min')
+            label_min.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+            layout_h2.addWidget(label_min)
+            layout_h2.addWidget(self.__min)
+            label_max = QtWidgets.QLabel('Max')
+            label_max.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+            layout_h2.addWidget(label_max)
+            layout_h2.addWidget(self.__max)
+
         layout.addLayout(layout_h)
         layout.addWidget(self.__combo)
+        layout.addLayout(layout_h2)
+        
         self.setLayout(layout)
 
     def setEnabled(self, enable):
@@ -250,6 +274,14 @@ class ColormapSelection(QtWidgets.QWidget):
         self.__gamma.setEnabled(enable)
         self.__check.setEnabled(enable)
         self.__log.setEnabled(enable)
+        self.__min.setEnabled(enable)
+        self.__max.setEnabled(enable)
+
+    def __revToggled(self, bool):
+        min, max = self.__min.value(), self.__max.value()
+        self.__min.setValue(1-max)
+        self.__max.setValue(1-min)
+        self.__changed()
 
     def __changed(self):
         self.colorChanged.emit()
@@ -339,6 +371,26 @@ class ColormapSelection(QtWidgets.QWidget):
             float: The value of gamma.
         """
         return self.__gamma.value()
+
+    def setRange(self, min, max):
+        """
+        Set the range of the colormap.
+
+        Args:
+            min(float): The minimum value.
+            max(float): The maximum value.
+        """
+        self.__min.setValue(min)
+        self.__max.setValue(max)
+    
+    def range(self):
+        """
+        Get the range of the colormap.
+
+        Returns:
+            tuple: The minimum and maximum values.
+        """
+        return self.__min.value(), self.__max.value()
 
 
 class _SpinBoxOverOne(QtWidgets.QSpinBox):
