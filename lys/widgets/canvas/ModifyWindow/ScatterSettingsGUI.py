@@ -98,7 +98,6 @@ class _LineStyleAdjustBox(QtWidgets.QWidget):
             self.__widthexp.setText(expr)
 
     def setEnabled(self, b):
-        # print("setEnabled", b)
         self.__style.setEnabled(b)
         self.__useSolidColor.setEnabled(b)
         self.__widthcheck.setEnabled(b)
@@ -341,8 +340,6 @@ class AppearanceBox(QtWidgets.QWidget):
 
     def setScatters(self, scatters):
         self._update_scatter(scatters)
-        # print("setScatters", len(scatters))
-        # self._scatters = scatters
         if len(scatters) != 0:
             self._colormap.setData(scatters)
 
@@ -368,7 +365,6 @@ class AppearanceBox(QtWidgets.QWidget):
             self.__setEnabled(False)
 
     def __setEnabled(self, b):
-        # print("__setEnabled", b)
         self._colormap.setEnabled(b)
         self._line.setEnabled(b)
         self._marker.setEnabled(b)

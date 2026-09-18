@@ -351,18 +351,18 @@ class _ScatterTab(QtWidgets.QWidget):
         filt = FilterEditWidget()
 
         sel.selected.connect(app.setScatters)
+        sel.selected.connect(col.setData)
+        sel.selected.connect(leg.setData)
         sel.selected.connect(err.setData)
         sel.selected.connect(off.setData)
-        sel.selected.connect(leg.setData)
-        sel.selected.connect(col.setData)
         sel.selected.connect(filt.setData)
 
         tab = QtWidgets.QTabWidget()
         tab.addTab(app, 'Appearance')
+        tab.addTab(col, 'Colorbar')
+        tab.addTab(leg, 'Legend')
         tab.addTab(err, 'Errorbar')
         tab.addTab(off, 'Offset')
-        tab.addTab(leg, 'Legend')
-        tab.addTab(col, 'Colorbar')
         tab.addTab(filt, 'Filter')
 
         layout = QtWidgets.QVBoxLayout()
